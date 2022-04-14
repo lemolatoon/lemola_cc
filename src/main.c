@@ -270,9 +270,15 @@ void parser_test() {
 
 void look_under(Node *node, int depth) {
   // right
-  printf("depth: %d\nkind: %d, value: %d\n", depth, node->kind, node->value);
+  printf("depth: %d\n", depth);
+  for (int i = 0; i < depth; i++) {
+    putchar('\t');
+  }
+  printf("kind: %d, value: %d\n", node->kind, node->value);
   if (node->kind != ND_NUM) {
+    printf("Right\t");
     look_under(node->rhs, depth + 1);
+    printf("Left\t");
     look_under(node->lhs, depth + 1);
   }
 }
