@@ -199,7 +199,7 @@ Node *parse_primary() {
 }
 // --------------parser----------------
 
-void parser_test(Node *node);
+void parser_test();
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -217,9 +217,8 @@ int main(int argc, char **argv) {
   // tokenize
   token = tokenize(&s[0]);
 
-  // Node *node = parse_expr();
-  // parser_test(node);
-  // exit(0);
+  parser_test();
+  exit(0);
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
@@ -260,8 +259,14 @@ int main(int argc, char **argv) {
 void right(Node *node, int depth);
 void left(Node *node, int depth);
 
-void parser_test(Node *node) {
-  Node *head = node;
+void ast_print(Node *node);
+void hello();
+
+void parser_test() {
+  Node *head = parse_expr();
+  hello();
+  ast_print(head);
+  exit(0);
   printf("Left\n");
   left(head, 0);
   printf("Right\n");
