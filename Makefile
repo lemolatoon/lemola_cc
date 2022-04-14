@@ -1,13 +1,17 @@
-LITERAL = 42
 
-main: src/main.c
+src.s: lemola_cc src.c
+	./lemola_cc src.c
+
+lemola_cc: src/main.c
 	clang src/main.c -o lemola_cc
-
-test: main
-	./lemola_cc $(LITERAL) > src.s
 
 a.out: src.s
 	cc src.s 
 
+.PHONY: clean
 clean:
 	rm -f ./lemola_cc src.s a.out
+
+.PHONY: rev_asm
+rev_asm: a.out
+	objdump -d -M intel a.out | less
