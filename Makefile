@@ -5,8 +5,8 @@ src.s: lemola_cc src.c
 	./lemola_cc src.c
 
 for_test/target/debug/libfor_test.so:
-	cd for_test
-	cargo build
+	cd for_test && \
+	cargo build && \
 	cd ..
 
 lemola_cc.o: src/main.c
