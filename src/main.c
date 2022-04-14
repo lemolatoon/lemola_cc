@@ -115,7 +115,7 @@ typedef enum {
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
-  ND_NUM, // Interger
+  ND_NUM, // Integer
 } NodeKind;
 
 typedef struct Node Node;
@@ -256,8 +256,7 @@ int main(int argc, char **argv) {
     *c = "ND_NUM";                                                             \
   }
 
-void right(Node *node, int depth);
-void left(Node *node, int depth);
+void look_under(Node *node, int depth);
 
 void ast_print(Node *node);
 void hello();
@@ -266,35 +265,20 @@ void parser_test() {
   Node *head = parse_expr();
   hello();
   ast_print(head);
-  exit(0);
-  printf("Left\n");
-  left(head, 0);
-  printf("Right\n");
-  right(head, 0);
+  look_under(head, 0);
 }
 
-void left(Node *node, int depth) {
+void look_under(Node *node, int depth) {
+  // right
   printf("depth: %d\nkind: %d, value: %d\n", depth, node->lhs->kind,
          node->lhs->value);
-  if (node->lhs->kind != ND_NUM) {
-    printf("left again");
-    left(node->lhs, depth + 1);
-  }
-  if (node->lhs->kind != ND_NUM) {
-    printf("right again");
-    right(node->rhs, depth + 1);
-  }
-}
-
-void right(Node *node, int depth) {
+  // left
   printf("depth: %d\nkind: %d, value: %d\n", depth, node->rhs->kind,
          node->rhs->value);
   if (node->rhs->kind != ND_NUM) {
-    printf("left again");
-    left(node->lhs, depth + 1);
+    look_under(node->rhs, depth + 1);
   }
-  if (node->rhs->kind != ND_NUM) {
-    printf("right again");
-    right(node->rhs, depth + 1);
+  if (node->lhs->kind != ND_NUM) {
+    look_under(node->lhs, depth + 1);
   }
 }
