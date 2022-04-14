@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// -------------Tokenizer--------------
+
 typedef enum {
   TK_RESERVED, // operator
   TK_NUM,      // number literal
@@ -85,7 +87,8 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
+        *p == ')') {
       current_token = new_token(TK_RESERVED, current_token, p++);
       continue;
     }
@@ -97,12 +100,106 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error("Impossible to tokenize: unexpected char: '%c'\n", p);
+    error("Impossible to tokenize: unexpected char: '%c'\n", *p);
   }
 
   new_token(TK_EOF, current_token, p);
   return head.next;
 }
+
+// -------------Tokenizer--------------
+
+// --------------parser----------------
+typedef enum {
+  ND_ADD, // +
+  ND_SUB, // -
+  ND_MUL, // *
+  ND_DIV, // /
+  ND_NUM, // Interger
+} NodeKind;
+
+typedef struct Node Node;
+
+struct Node {
+  NodeKind kind;
+  Node *lhs;
+  Node *rhs;
+  int value;
+};
+
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+  printf("NEW_NODE\n");
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  if (lhs == NULL || rhs == NULL) {
+    printf("lhs or rhs is null\n");
+  }
+  node->lhs = lhs;
+  node->rhs = rhs;
+  printf("kind: %d, value: %d\n", node->kind, node->value);
+  return node;
+}
+
+Node *new_node_num(int val) {
+  printf("NEW NUM NODE\n");
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_NUM;
+  node->value = val;
+  printf("kind: %d, value: %d\n", node->kind, node->value);
+  return node;
+}
+
+Node *parse_expr();
+Node *parse_mul();
+Node *parse_primary();
+
+Node *parse_expr() {
+  Node *node = parse_mul();
+  for (;;) {
+    if (consume('+')) {
+      printf("ADD\n");
+      node = new_node(ND_ADD, node, parse_mul());
+    } else if (consume('-')) {
+      printf("SUB\n");
+      node = new_node(ND_SUB, node, parse_mul());
+    } else {
+      printf("parsed expr\n");
+      return node;
+    }
+  }
+}
+
+Node *parse_mul() {
+  Node *node = parse_primary();
+  for (;;) {
+    if (consume('*')) {
+      printf("MUL\n");
+      node = new_node(ND_MUL, node, parse_primary());
+    } else if (consume('/')) {
+      printf("DIV\n");
+      node = new_node(ND_DIV, node, parse_primary());
+    } else {
+      printf("parsed mul\n");
+      return node;
+    }
+  }
+}
+
+Node *parse_primary() {
+  if (consume('(')) {
+    Node *node = parse_expr();
+    expect(')');
+
+    printf("parsed primary\n");
+    return node;
+  }
+
+  printf("parsed primary\n");
+  return new_node_num(expect_number());
+}
+// --------------parser----------------
+
+void parser_test(Node *node);
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -119,6 +216,10 @@ int main(int argc, char **argv) {
 
   // tokenize
   token = tokenize(&s[0]);
+
+  // Node *node = parse_expr();
+  // parser_test(node);
+  // exit(0);
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
@@ -140,4 +241,55 @@ int main(int argc, char **argv) {
 
   fprintf(target_pointer, "  ret\n");
   return 0;
+}
+
+// get_kind(char[] c, Nodekind num)
+#define get_kind(c, num)                                                       \
+  if (num == ND_ADD) {                                                         \
+    *c = "ND_ADD";                                                             \
+  } else if (num == ND_SUB) {                                                  \
+    *c = "ND_SUB";                                                             \
+  } else if (num == ND_MUL) {                                                  \
+    *c = "ND_MUL";                                                             \
+  } else if (num == ND_DIV) {                                                  \
+    *c = "ND_DIV";                                                             \
+  } else if (num == ND_NUM) {                                                  \
+    *c = "ND_NUM";                                                             \
+  }
+
+void right(Node *node, int depth);
+void left(Node *node, int depth);
+
+void parser_test(Node *node) {
+  Node *head = node;
+  printf("Left\n");
+  left(head, 0);
+  printf("Right\n");
+  right(head, 0);
+}
+
+void left(Node *node, int depth) {
+  printf("depth: %d\nkind: %d, value: %d\n", depth, node->lhs->kind,
+         node->lhs->value);
+  if (node->lhs->kind != ND_NUM) {
+    printf("left again");
+    left(node->lhs, depth + 1);
+  }
+  if (node->lhs->kind != ND_NUM) {
+    printf("right again");
+    right(node->rhs, depth + 1);
+  }
+}
+
+void right(Node *node, int depth) {
+  printf("depth: %d\nkind: %d, value: %d\n", depth, node->rhs->kind,
+         node->rhs->value);
+  if (node->rhs->kind != ND_NUM) {
+    printf("left again");
+    left(node->lhs, depth + 1);
+  }
+  if (node->rhs->kind != ND_NUM) {
+    printf("right again");
+    right(node->rhs, depth + 1);
+  }
 }
