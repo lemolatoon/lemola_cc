@@ -4,7 +4,7 @@ CC = clang
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
-for_test/target/debug/libfor_test.so:
+for_test/target/debug/libfor_test.so: for_test/src/lib.rs
 	cd for_test && \
 	cargo build && \
 	cd ..
@@ -20,7 +20,7 @@ a.out: src.s
 
 .PHONY: clean
 clean:
-	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c
+	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c lemola_cc.o
 
 .PHONY: test
 test: lemola_cc

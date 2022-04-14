@@ -29,7 +29,6 @@ impl Debug for Node<'_> {
                 .field("kind", &self.kind)
                 .field("lhs", &self.lhs)
                 .field("rhs", &self.rhs)
-                .field("value", &self.value)
                 .finish()
         }
     }
