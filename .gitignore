@@ -1,6 +1,11 @@
 # User Defined
+src.c
 src.s
 a.out
+lemola_cc
+test/tmp
+test/tmp.c
+test/tmp.s
 
 # Prerequisites
 *.d

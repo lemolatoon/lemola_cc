@@ -10,7 +10,11 @@ a.out: src.s
 
 .PHONY: clean
 clean:
-	rm -f ./lemola_cc src.s a.out
+	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c
+
+.PHONY: test
+test: lemola_cc
+	./test/test.sh
 
 .PHONY: rev_asm
 rev_asm: a.out
