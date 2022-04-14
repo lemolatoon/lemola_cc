@@ -1,9 +1,10 @@
+CFLAGS=-std=c11 -g -static -Wall -Wextra
 
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
 lemola_cc: src/main.c
-	clang src/main.c -o lemola_cc
+	clang src/main.c -o lemola_cc $(CFLAGS)
 
 a.out: src.s
 	cc src.s 
