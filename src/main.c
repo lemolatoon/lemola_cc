@@ -7,10 +7,16 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
-  printf("main:\n");
-  printf("  mov rax, %d\n", atoi(argv[1]));
-  printf("  ret\n");
+  FILE *source_pointer = fopen(argv[1], "r");
+  FILE *target_pointer = fopen("src.s", "w");
+
+  int num;
+  fscanf(source_pointer, "%d", &num);
+
+  fprintf(target_pointer, ".intel_syntax noprefix\n");
+  fprintf(target_pointer, ".global main\n");
+  fprintf(target_pointer, "main:\n");
+  fprintf(target_pointer, "  mov rax, %d\n", num);
+  fprintf(target_pointer, "  ret\n");
   return 0;
 }
