@@ -6,6 +6,7 @@ lemola_cc
 test/tmp
 test/tmp.c
 test/tmp.s
+for_test/target
 
 # Prerequisites
 *.d
