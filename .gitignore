@@ -7,6 +7,7 @@ test/tmp
 test/tmp.c
 test/tmp.s
 for_test/target
+.vscode
 
 # Prerequisites
 *.d

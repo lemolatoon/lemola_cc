@@ -23,10 +23,19 @@ struct Token {
 
 Token *token; // Token dealing with
 
-void error(char *fmt, ...) {
+// input source
+char *user_input;
+
+// Report where is the error.
+void error_at(char *loc, char *fmt, ...) {
   // format same as printf
   va_list ap;
   va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, " "); // print pos of whiteblock
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -46,7 +55,7 @@ bool consume(char op) {
 // next token. Otherwise call `error()`
 void expect(char op) {
   if (token->kind != TK_RESERVED || token->str[0] != op) {
-    error("'%c'ではありません", op);
+    error_at(token->str, "'%c'ではありません", op);
   }
   token = token->next;
 }
@@ -55,7 +64,7 @@ void expect(char op) {
 // and then return the number. Otherwise, call `error()`.
 int expect_number() {
   if (token->kind != TK_NUM) {
-    error("Token is not number.");
+    error_at(token->str, "Token is not number: %c", token->str);
   }
 
   int val = token->value;
@@ -66,6 +75,7 @@ int expect_number() {
 bool at_eof() { return token->kind == TK_EOF; }
 
 // Create new token and make current_token link to it.
+// char *str: the head pointer of token str in whole source
 Token *new_token(TokenKind kind, Token *current_token, char *str) {
   Token *token = calloc(1, sizeof(Token));
   token->kind = kind;
@@ -100,7 +110,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error("Impossible to tokenize: unexpected char: '%c'\n", *p);
+    error_at(p, "Impossible to tokenize: unexpected char: '%c'\n", *p);
   }
 
   new_token(TK_EOF, current_token, p);
@@ -212,6 +222,7 @@ int main(int argc, char **argv) {
 
   // buffer
   char s[1024];
+  user_input = &s[0];
   fgets(s, 1024, source_pointer);
 
   // tokenize

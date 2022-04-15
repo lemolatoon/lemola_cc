@@ -15,6 +15,7 @@ lemola_cc.o: src/main.c
 lemola_cc: src/main.c lemola_cc.o for_test/target/debug/libfor_test.so
 	$(CC) for_test/target/debug/libfor_test.so lemola_cc.o -o lemola_cc $(CFLAGS)
 
+
 a.out: src.s
 	cc src.s 
 
