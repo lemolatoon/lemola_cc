@@ -4,6 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// #define RUST_DEBUG
+
+// #define Debug
+
+#ifdef Debug
+#define printk(...) printf(__VA_ARGS__)
+#else
+#define printk(...)
+#endif
+
 // -------------Tokenizer--------------
 
 typedef enum {
@@ -36,6 +46,14 @@ void error_at(char *loc, char *fmt, ...) {
   fprintf(stderr, "%s\n", user_input);
   fprintf(stderr, "%*s", pos, " "); // print pos of whiteblock
   fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+void error(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -138,24 +156,24 @@ struct Node {
 };
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
-  printf("NEW_NODE\n");
+  printk("NEW_NODE\n");
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
   if (lhs == NULL || rhs == NULL) {
-    printf("lhs or rhs is null\n");
+    printk("lhs or rhs is null\n");
   }
   node->lhs = lhs;
   node->rhs = rhs;
-  printf("kind: %d, value: %d\n", node->kind, node->value);
+  printk("kind: %d, value: %d\n", node->kind, node->value);
   return node;
 }
 
 Node *new_node_num(int val) {
-  printf("NEW NUM NODE\n");
+  printk("NEW NUM NODE\n");
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->value = val;
-  printf("kind: %d, value: %d\n", node->kind, node->value);
+  printk("kind: %d, value: %d\n", node->kind, node->value);
   return node;
 }
 
@@ -167,13 +185,13 @@ Node *parse_expr() {
   Node *node = parse_mul();
   for (;;) {
     if (consume('+')) {
-      printf("ADD\n");
+      printk("ADD\n");
       node = new_node(ND_ADD, node, parse_mul());
     } else if (consume('-')) {
-      printf("SUB\n");
+      printk("SUB\n");
       node = new_node(ND_SUB, node, parse_mul());
     } else {
-      printf("parsed expr\n");
+      printk("parsed expr\n");
       return node;
     }
   }
@@ -183,13 +201,13 @@ Node *parse_mul() {
   Node *node = parse_primary();
   for (;;) {
     if (consume('*')) {
-      printf("MUL\n");
+      printk("MUL\n");
       node = new_node(ND_MUL, node, parse_primary());
     } else if (consume('/')) {
-      printf("DIV\n");
+      printk("DIV\n");
       node = new_node(ND_DIV, node, parse_primary());
     } else {
-      printf("parsed mul\n");
+      printk("parsed mul\n");
       return node;
     }
   }
@@ -200,16 +218,50 @@ Node *parse_primary() {
     Node *node = parse_expr();
     expect(')');
 
-    printf("parsed primary\n");
+    printk("parsed primary\n");
     return node;
   }
 
-  printf("parsed primary\n");
+  printk("parsed primary\n");
   return new_node_num(expect_number());
 }
 // --------------parser----------------
 
 void parser_test();
+
+// generate stack-like operator asm
+void generate_assembly(Node *node, FILE *fp) {
+  if (node->kind == ND_NUM) {
+    fprintf(fp, " push %d\n", node->value);
+    return;
+  }
+
+  generate_assembly(node->lhs, fp);
+  generate_assembly(node->rhs, fp);
+
+  fprintf(fp, " pop rdi\n");
+  fprintf(fp, " pop rax\n");
+
+  switch (node->kind) {
+  case ND_ADD:
+    fprintf(fp, " add rax, rdi\n");
+    break;
+  case ND_SUB:
+    fprintf(fp, " sub rax, rdi\n");
+    break;
+  case ND_MUL:
+    fprintf(fp, " imul rax, rdi\n");
+    break;
+  case ND_DIV:
+    // extend rax 64bit register to rdx-rax 128bit register
+    fprintf(fp, " cqo\n");
+    // rax := rax / rdi, rdx := rax % rdi
+    fprintf(fp, " idiv rdi\n");
+    break;
+  default:
+    error("Unexpected NodeKind: %d", node->kind);
+  }
+}
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -225,31 +277,20 @@ int main(int argc, char **argv) {
   user_input = &s[0];
   fgets(s, 1024, source_pointer);
 
-  // tokenize
+  // tokenize and parse
   token = tokenize(&s[0]);
-
-  parser_test();
-  exit(0);
+  Node *node = parse_expr();
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
   fprintf(target_pointer, ".global main\n");
   fprintf(target_pointer, "main:\n");
 
-  // first char of source must be number
-  fprintf(target_pointer, " mov rax, %d\n", expect_number());
+  // generate assembly while getting down AST(Abstract Syntax Tree)
+  generate_assembly(node, target_pointer);
 
-  while (!at_eof()) {
-    if (consume('+')) {
-      fprintf(target_pointer, " add rax, %d\n", expect_number());
-      continue;
-    }
-
-    expect('-');
-    fprintf(target_pointer, " sub rax, %d\n", expect_number());
-  }
-
-  fprintf(target_pointer, "  ret\n");
+  fprintf(target_pointer, " pop rax\n");
+  fprintf(target_pointer, " ret\n");
   return 0;
 }
 
@@ -269,27 +310,31 @@ int main(int argc, char **argv) {
 
 void look_under(Node *node, int depth);
 
+#ifdef RUST_DEBUG
 void ast_print(Node *node);
 void hello();
+#endif
 
 void parser_test() {
   Node *head = parse_expr();
+#ifdef RUST_DEBUG
   hello();
   ast_print(head);
+#endif
   look_under(head, 0);
 }
 
 void look_under(Node *node, int depth) {
   // right
-  printf("depth: %d\n", depth);
+  printk("depth: %d\n", depth);
   for (int i = 0; i < depth; i++) {
     putchar('\t');
   }
-  printf("kind: %d, value: %d\n", node->kind, node->value);
+  printk("kind: %d, value: %d\n", node->kind, node->value);
   if (node->kind != ND_NUM) {
-    printf("Right\t");
+    printk("Right\t");
     look_under(node->rhs, depth + 1);
-    printf("Left\t");
+    printk("Left\t");
     look_under(node->lhs, depth + 1);
   }
 }
