@@ -13,13 +13,10 @@ Token *token; // Token dealing with
 // input source
 static char *user_input;
 
-// Report where is the error.
-void error_at(char *loc, char *fmt, ...) {
-  // format same as printf
+static void verror_at(char *location, char *fmt, ...) {
+  int pos = location - user_input;
   va_list ap;
   va_start(ap, fmt);
-
-  int pos = loc - user_input;
   fprintf(stderr, "%s\n", user_input);
   fprintf(stderr, "%*s", pos, " "); // print pos of whiteblock
   fprintf(stderr, "^ ");
@@ -28,33 +25,48 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
-void error(char *fmt, ...) {
+// Report where is the error and exit.
+static void error_at(char *loc, char *fmt, ...) {
+  // format same as printf
   va_list ap;
   va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
-  exit(1);
+  verror_at(loc, fmt, ap);
 }
 
-// When the next token is expected operator, then token will be replaced with
+static void error_token(Token *token, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  verror_at(token->str, fmt, ap);
+}
+
+// Ensures the current token matches op 'op'
+static bool equal(char *op) {
+#ifdef RUSTD
+  token_print(token);
+#endif
+  printk("(%d,", token->kind == TK_RESERVED);
+  printk("%d,", (int)strlen(op) == token->len);
+  printk("%d)\n", strncmp(token->str, op, token->len) == 0);
+  return token->kind == TK_RESERVED && (int)strlen(op) == token->len &&
+         strncmp(token->str, op, token->len) == 0;
+}
+
+// When the next token is expected punctuator, then token will be replaced with
 // next token and return true. otherwise return false
 bool consume(char *op) {
-
-  if (token->kind != TK_RESERVED || (int)strlen(op) != token->len ||
-      memcmp(token->str, op, token->len)) {
-    // When at least one condition don't satisfy
+  if (!equal(op)) {
+    printk("This is not %c, this is %c\n", *op, *(token->str));
+    // When current token is not expected punctuator or, even is not punctuator
     return false;
   }
   token = token->next;
   return true;
 }
 
-// When the next token is expected operator, then token will be replaced with
+// When the next token is expected punctuator, then token will be replaced with
 // next token. Otherwise call `error()`
 void expect(char *op) {
-  if (token->kind != TK_RESERVED || (int)strlen(op) != token->len ||
-      memcmp(token->str, op, token->len)) {
-    // When at least one condition don't satisfy
+  if (!equal(op)) {
     error_at(token->str, "'%c'ではありません", op);
   }
   token = token->next;
@@ -74,14 +86,54 @@ int expect_number() {
 
 bool at_eof() { return token->kind == TK_EOF; }
 
+#ifdef RUSTD
+void token_print(Token *token);
+#endif
+
 // Create new token and make current_token link to it.
 // char *str: the head pointer of token str in whole source
-Token *new_token(TokenKind kind, Token *current_token, char *str) {
+static Token *new_token(TokenKind kind, Token *current_token, char *str_start,
+                        char *str_end) {
   Token *token = calloc(1, sizeof(Token));
   token->kind = kind;
-  token->str = str;
+  token->str = str_start;
+  token->len = str_end - str_start;
   current_token->next = token;
+#ifdef RUSTD
+  token_print(token);
+#endif
   return token;
+}
+
+// Check wheather str `p` start with `q`
+//(str will be compared is only `strlen(q)` words)
+static bool starts_with(char *p, char *q) {
+  return strncmp(p, q, strlen(q)) == 0;
+}
+
+// Caller Saved: length of p must be 1 or below(not punctuator)
+// Return whether the given punctuator's length is one or not.
+static bool is_punctuator(char *p) {
+  if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
+      *p == ')') {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Read a punctuator token from p and returns its length
+static int read_punctuator(char *p) {
+  if (starts_with(p, "==") || starts_with(p, "!=") || starts_with(p, "<=") ||
+      starts_with(p, ">=")) {
+    return 2;
+  };
+
+  if (is_punctuator(p)) {
+    return 1;
+  }
+
+  return 0;
 }
 
 // Tokenize char[] p and return Head of Token LinkedList
@@ -89,6 +141,7 @@ Token *tokenize(char *p) {
   // Invariant: p points the tokenize-head of char
   // In other word, the char is head of next token->str
   user_input = p;
+  printf(p);
   Token head;
   head.next = NULL;
   Token *current_token = &head;
@@ -100,23 +153,27 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
-        *p == ')') {
-      current_token = new_token(TK_RESERVED, current_token, p++);
-      continue;
-    }
-
+    // Numerical Literal
     if (isdigit(*p)) {
+      char *digit_start = p;
       int tmp = strtol(p, &p, 10);
-      current_token = new_token(TK_NUM, current_token, p);
+      current_token = new_token(TK_NUM, current_token, digit_start, p);
       current_token->value = tmp;
       continue;
     }
 
-    error_at(p, "Impossible to tokenize: unexpected char: '%c'\n", *p);
+    // Punctuators
+    int punc_len = read_punctuator(p);
+    if (punc_len >= 1) {
+      current_token = new_token(TK_RESERVED, current_token, p, p + punc_len);
+      p += punc_len;
+      continue;
+    }
+
+    error_at(p, "Impossible to tokenize: unexpected char: '%c'\n", p);
   }
 
-  new_token(TK_EOF, current_token, p);
+  new_token(TK_EOF, current_token, p, p);
   return head.next;
 }
 

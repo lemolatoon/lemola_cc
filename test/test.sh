@@ -6,12 +6,13 @@ assert() {
     expected="$1"
     input="$2"
 
-    echo $expected > tmp.c
+    echo "$input" > tmp.c
     ../lemola_cc tmp.c
 
-    cc -o tmp src.s 
+    clang -o tmp src.s 
     ./tmp
     actual="$?"
+
 
     if [ "$actual" = "$expected" ]; then
         echo "$input => $actual"
@@ -29,5 +30,7 @@ assert 21 "5   + 20  - 4"
 assert 39 "3 + 3 + 3 - 29 + 59"
 assert 47 "5 + 6 * 7"
 assert 15 "5 * (9 - 6)"
+assert 4 "(3 + 5) / 2"
+assert 143 "4 + 4  + (4 + (5 + 9 * 7  * (8 / 4)))"
 
 echo OK
