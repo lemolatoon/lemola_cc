@@ -8,6 +8,7 @@ lemola_cc
 test/tmp
 test/tmp.c
 test/tmp.s
+test/log
 
 # under src/
 src/code_gen.o

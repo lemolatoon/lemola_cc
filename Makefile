@@ -1,10 +1,29 @@
-CFLAGS=-std=c11 -g -Wall -Wextra -static
+CFLAGS=-std=c11 -g -Wall -Wextra
 SRCS=$(wildcard src/*.c)
 OBJS=$(SRCS:.c=.o)
 CC = clang
+LDFLAGS =
 
-lemola_cc: $(OBJS)
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+# RUSTD = 1
+# Debug = 1
+
+ifdef RUSTD
+	CFLAGS += -DRUSTD
+	LIBNAME = libfor_test.so
+	RUSTLIB = for_test/target/debug/$(LIBNAME)
+	RUSTLIBPATH = $(HOME)/bin/$(LIBNAME)
+else
+	LDFLAGS += -static
+	CFLAGS += -static
+endif
+
+ifdef Debug
+	CFLAGS += -DDebug
+endif
+
+lemola_cc: $(OBJS) $(RUSTLIB)
+	$(CC) $(OBJS)  $(RUSTLIBPATH) -o $@ $(LDFLAGS)
+
 
 $(OBJS): src/lemola_cc.h
 #	$(CC) -c $(SRCS) $(CFLAGS)
@@ -12,13 +31,14 @@ $(OBJS): src/lemola_cc.h
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
-for_test/target/debug/libfor_test.so: for_test/src/lib.rs
+$(RUSTLIB): for_test/src/lib.rs
 	cd for_test && \
 	cargo build && \
-	cd ..
+	cd .. && \
+	cp $(RUSTLIB) $(HOME)/bin/$(LIBNAME)
 
 a.out: src.s
-	cc src.s 
+	$(CC) src.s 
 
 .PHONY: clean
 clean:

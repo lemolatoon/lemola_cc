@@ -33,4 +33,6 @@ void generate_assembly(Node *node, FILE *fp) {
   default:
     error("Unexpected NodeKind: %d", node->kind);
   }
+
+  fprintf(fp, " push rax\n");
 }
