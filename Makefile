@@ -1,5 +1,13 @@
-CFLAGS=-std=c11 -g -Wall -Wextra 
+CFLAGS=-std=c11 -g -Wall -Wextra -static
+SRCS=$(wildcard src/*.c)
+OBJS=$(SRCS:.c=.o)
 CC = clang
+
+lemola_cc: $(OBJS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+
+$(OBJS): src/lemola_cc.h
+#	$(CC) -c $(SRCS) $(CFLAGS)
 
 src.s: lemola_cc src.c
 	./lemola_cc src.c
@@ -9,19 +17,13 @@ for_test/target/debug/libfor_test.so: for_test/src/lib.rs
 	cargo build && \
 	cd ..
 
-lemola_cc.o: src/main.c
-	$(CC) -c src/main.c -o lemola_cc.o $(CFLAGS)
-
-lemola_cc: src/main.c lemola_cc.o 
-	$(CC) lemola_cc.o -o lemola_cc $(CFLAGS) -static
-
-
 a.out: src.s
 	cc src.s 
 
 .PHONY: clean
 clean:
-	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c lemola_cc.o
+	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c \
+	src/lemola_cc.o src/main.o src/parser.o src/tokenizer.o src/code_gen.o
 
 .PHONY: test
 test: lemola_cc
