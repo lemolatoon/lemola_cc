@@ -28,10 +28,10 @@ Node *new_node_num(int val) {
 Node *parse_expr() {
   Node *node = parse_mul();
   for (;;) {
-    if (consume('+')) {
+    if (consume("+")) {
       printk("ADD\n");
       node = new_node(ND_ADD, node, parse_mul());
-    } else if (consume('-')) {
+    } else if (consume("-")) {
       printk("SUB\n");
       node = new_node(ND_SUB, node, parse_mul());
     } else {
@@ -44,10 +44,10 @@ Node *parse_expr() {
 Node *parse_mul() {
   Node *node = parse_primary();
   for (;;) {
-    if (consume('*')) {
+    if (consume("*")) {
       printk("MUL\n");
       node = new_node(ND_MUL, node, parse_primary());
-    } else if (consume('/')) {
+    } else if (consume("/")) {
       printk("DIV\n");
       node = new_node(ND_DIV, node, parse_primary());
     } else {
@@ -58,9 +58,9 @@ Node *parse_mul() {
 }
 
 Node *parse_primary() {
-  if (consume('(')) {
+  if (consume("(")) {
     Node *node = parse_expr();
-    expect(')');
+    expect(")");
 
     printk("parsed primary\n");
     return node;
@@ -88,9 +88,10 @@ void look_under(Node *node, int depth) {
 
 void parser_test() {
   Node *head = parse_expr();
-#ifdef RUST_DEBUG
+#ifdef RUSTD
   hello();
   ast_print(head);
-#endif
+#else
   look_under(head, 0);
+#endif
 }

@@ -1,13 +1,20 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-// #define Debug
-// #define RUST_DEBUG
+//#define Debug
+//#define RUSTD
 
 #ifdef Debug
 #define printk(...) printf(__VA_ARGS__)
+#define assertd(expr) assert(expr)
 #else
-#define printk(...)
+#define printk(...)                                                            \
+  do {                                                                         \
+  } while (0);
+#define assertd(...)                                                           \
+  do {                                                                         \
+  } while (0);
 #endif
 
 // --------------parser----------------
@@ -38,10 +45,6 @@ Node *parse_primary();
 // --------------parser----------------
 
 void parser_test();
-#ifdef RUST_DEBUG
-void ast_print(Node *node);
-void hello();
-#endif
 
 // -------------Tokenizer--------------
 
@@ -58,22 +61,18 @@ struct Token {
   Token *next;    // Next Token
   int value;      // value of Token (when kind == TK_NUM)
   char *str;      // Token char[]
+  int len;        // length of Token
 };
 
 extern Token *token; // Token dealing with
 
-// Report where is the error.
-void error_at(char *loc, char *fmt, ...);
-
-void error(char *fmt, ...);
-
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char op);
+bool consume(char *op);
 
 // When the next token is expected operator, then token will be replaced with
 // next token. Otherwise call `error()`
-void expect(char op);
+void expect(char *op);
 
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
@@ -92,5 +91,28 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-
 void generate_assembly(Node *node, FILE *fp);
+// -------------code_gen---------------
+
+// ---------------utils----------------
+void error(char *fmt, ...);
+// ---------------utils----------------
+#ifdef RUSTD
+void ast_print(Node *node);
+void hello();
+void token_print(Token *token);
+
+#define ast_printd(node) ast_print(node)
+#define hellod() hello()
+#define token_printd(token) token_print(token)
+#else
+#define ast_printd(node)                                                       \
+  do {                                                                         \
+  } while (0)
+#define hellod()                                                               \
+  do {                                                                         \
+  } while (0)
+#define token_printd(token)                                                    \
+  do {                                                                         \
+  } while (0)
+#endif
