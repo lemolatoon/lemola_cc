@@ -41,9 +41,7 @@ static void error_token(Token *token, char *fmt, ...) {
 
 // Ensures the current token matches op 'op'
 static bool equal(char *op) {
-#ifdef RUSTD
-  token_print(token);
-#endif
+  token_printd(token);
   printk("(%d,", token->kind == TK_RESERVED);
   printk("%d,", (int)strlen(op) == token->len);
   printk("%d)\n", strncmp(token->str, op, token->len) == 0);
@@ -86,10 +84,6 @@ int expect_number() {
 
 bool at_eof() { return token->kind == TK_EOF; }
 
-#ifdef RUSTD
-void token_print(Token *token);
-#endif
-
 // Create new token and make current_token link to it.
 // char *str: the head pointer of token str in whole source
 static Token *new_token(TokenKind kind, Token *current_token, char *str_start,
@@ -99,9 +93,7 @@ static Token *new_token(TokenKind kind, Token *current_token, char *str_start,
   token->str = str_start;
   token->len = str_end - str_start;
   current_token->next = token;
-#ifdef RUSTD
-  token_print(token);
-#endif
+  token_printd(token);
   return token;
 }
 
@@ -141,7 +133,6 @@ Token *tokenize(char *p) {
   // Invariant: p points the tokenize-head of char
   // In other word, the char is head of next token->str
   user_input = p;
-  printf(p);
   Token head;
   head.next = NULL;
   Token *current_token = &head;

@@ -101,4 +101,18 @@ void error(char *fmt, ...);
 void ast_print(Node *node);
 void hello();
 void token_print(Token *token);
+
+#define ast_printd(node) ast_print(node)
+#define hellod() hello()
+#define token_printd(token) token_print(token)
+#else
+#define ast_printd(node)                                                       \
+  do {                                                                         \
+  } while (0)
+#define hellod()                                                               \
+  do {                                                                         \
+  } while (0)
+#define token_printd(token)                                                    \
+  do {                                                                         \
+  } while (0)
 #endif

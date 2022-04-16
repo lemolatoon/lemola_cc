@@ -5,18 +5,25 @@ CC = clang
 LDFLAGS =
 
 # RUSTD = 1
+# Debug = 1
 
 ifdef RUSTD
+	CFLAGS += -DRUSTD
 	LIBNAME = libfor_test.so
 	RUSTLIB = for_test/target/debug/$(LIBNAME)
-	RUSTFLIBPATH = $(HOME)/bin/$(LIBNAME)
+	RUSTLIBPATH = $(HOME)/bin/$(LIBNAME)
 else
 	LDFLAGS += -static
 	CFLAGS += -static
 endif
 
+ifdef Debug
+	CFLAGS += -DDebug
+endif
+
 lemola_cc: $(OBJS) $(RUSTLIB)
-	$(CC) $(OBJS) $(RUSTLIBPATH) -o $@ $(LDFLAGS)
+	$(CC) $(OBJS)  $(RUSTLIBPATH) -o $@ $(LDFLAGS)
+
 
 $(OBJS): src/lemola_cc.h
 #	$(CC) -c $(SRCS) $(CFLAGS)
