@@ -3,9 +3,17 @@ src.c
 src.s
 a.out
 lemola_cc
+
+# under test/
 test/tmp
 test/tmp.c
 test/tmp.s
+
+# under src/
+src/code_gen.o
+src/parser.o
+src/tokenizer.o
+
 for_test/target
 .vscode
 
