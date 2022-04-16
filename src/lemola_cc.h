@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -6,8 +7,14 @@
 
 #ifdef Debug
 #define printk(...) printf(__VA_ARGS__)
+#define assertd(expr) assert(expr)
 #else
-#define printk(...)
+#define printk(...)                                                            \
+  do {                                                                         \
+  } while (0);
+#define assertd(...)                                                           \
+  do {                                                                         \
+  } while (0);
 #endif
 
 // --------------parser----------------
@@ -58,6 +65,7 @@ struct Token {
   Token *next;    // Next Token
   int value;      // value of Token (when kind == TK_NUM)
   char *str;      // Token char[]
+  int len;        // length of Token
 };
 
 extern Token *token; // Token dealing with
@@ -69,11 +77,11 @@ void error(char *fmt, ...);
 
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char op);
+bool consume(char *op);
 
 // When the next token is expected operator, then token will be replaced with
 // next token. Otherwise call `error()`
-void expect(char op);
+void expect(char *op);
 
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
