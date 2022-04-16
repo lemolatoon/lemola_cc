@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // -------------Tokenizer--------------
 
@@ -37,8 +38,11 @@ void error(char *fmt, ...) {
 
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op) {
+bool consume(char *op) {
+
+  if (token->kind != TK_RESERVED || (int)strlen(op) != token->len ||
+      memcmp(token->str, op, token->len)) {
+    // When at least one condition don't satisfy
     return false;
   }
   token = token->next;
@@ -47,8 +51,10 @@ bool consume(char op) {
 
 // When the next token is expected operator, then token will be replaced with
 // next token. Otherwise call `error()`
-void expect(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op) {
+void expect(char *op) {
+  if (token->kind != TK_RESERVED || (int)strlen(op) != token->len ||
+      memcmp(token->str, op, token->len)) {
+    // When at least one condition don't satisfy
     error_at(token->str, "'%c'ではありません", op);
   }
   token = token->next;
@@ -80,6 +86,8 @@ Token *new_token(TokenKind kind, Token *current_token, char *str) {
 
 // Tokenize char[] p and return Head of Token LinkedList
 Token *tokenize(char *p) {
+  // Invariant: p points the tokenize-head of char
+  // In other word, the char is head of next token->str
   user_input = p;
   Token head;
   head.next = NULL;
