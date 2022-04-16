@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -Wall -Wextra
+CFLAGS=-std=c11 -g -Wall -Wextra 
 CC = clang
 
 src.s: lemola_cc src.c
@@ -12,8 +12,8 @@ for_test/target/debug/libfor_test.so: for_test/src/lib.rs
 lemola_cc.o: src/main.c
 	$(CC) -c src/main.c -o lemola_cc.o $(CFLAGS)
 
-lemola_cc: src/main.c lemola_cc.o for_test/target/debug/libfor_test.so
-	$(CC) for_test/target/debug/libfor_test.so lemola_cc.o -o lemola_cc $(CFLAGS)
+lemola_cc: src/main.c lemola_cc.o 
+	$(CC) lemola_cc.o -o lemola_cc $(CFLAGS) -static
 
 
 a.out: src.s
