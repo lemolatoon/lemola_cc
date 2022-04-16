@@ -88,9 +88,10 @@ void look_under(Node *node, int depth) {
 
 void parser_test() {
   Node *head = parse_expr();
-#ifdef RUST_DEBUG
+#ifdef RUSTD
   hello();
   ast_print(head);
-#endif
+#else
   look_under(head, 0);
+#endif
 }

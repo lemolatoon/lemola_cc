@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-// #define Debug
-// #define RUST_DEBUG
+//#define Debug
+//#define RUSTD
 
 #ifdef Debug
 #define printk(...) printf(__VA_ARGS__)
@@ -45,10 +45,6 @@ Node *parse_primary();
 // --------------parser----------------
 
 void parser_test();
-#ifdef RUST_DEBUG
-void ast_print(Node *node);
-void hello();
-#endif
 
 // -------------Tokenizer--------------
 
@@ -69,11 +65,6 @@ struct Token {
 };
 
 extern Token *token; // Token dealing with
-
-// Report where is the error.
-void error_at(char *loc, char *fmt, ...);
-
-void error(char *fmt, ...);
 
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
@@ -100,5 +91,14 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-
 void generate_assembly(Node *node, FILE *fp);
+// -------------code_gen---------------
+
+// ---------------utils----------------
+void error(char *fmt, ...);
+// ---------------utils----------------
+#ifdef RUSTD
+void ast_print(Node *node);
+void hello();
+void token_print(Token *token);
+#endif
