@@ -47,13 +47,23 @@ static bool equal(char *op) {
 
 // When the next token is expected punctuator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char *op) {
+bool consume_op(char *op) {
   if (!equal(op)) {
     // When current token is not expected punctuator or, even is not punctuator
     return false;
   }
   token = token->next;
   return true;
+}
+
+// When the next token is expected TokenKind, then token will be replaced with
+// next token and return true. otherwise return false
+bool consume(TokenKind kind) {
+  if (token->kind == kind) {
+    token = token->next;
+    return true;
+  }
+  return false;
 }
 
 // When the next token is expected punctuator, then token will be replaced with
@@ -89,6 +99,8 @@ bool peek_number() {
 // When the next token is ident, then token will be replaced with next token
 // and then return the number. Otherwise, call error()
 Token *consume_ident() {
+  token_printd(token);
+  assertd(token->kind == TK_IDENT);
   if (token->kind != TK_IDENT) {
     error_at("expect ident but got : %d (token->kind)\n", token->kind);
   }
@@ -143,6 +155,12 @@ static int read_punctuator(char *p) {
   return 0;
 }
 
+// return whether the c is charactar which consists token or not
+static bool is_alnum(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+         ('0' <= c && c <= '9') || (c == '_');
+}
+
 // Tokenize char[] p and return Head of Token LinkedList
 Token *tokenize(char *p) {
   // Invariant: p points the tokenize-head of char
@@ -179,11 +197,17 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    // Identifier
+    // Identifier or Reserved words
     // possible characters that can be beside indent
     char *white_ptr = strpbrk(p, " \n\t;)}");
-    if (white_ptr - p >= 1) {
-      current_token = new_token(TK_IDENT, current_token, p, white_ptr);
+    int len = white_ptr - p;
+    if (len >= 1) {
+      if (len == 6 && !strncmp(p, "return", 6)) { // return
+        printk("RETURN!!\n");
+        current_token = new_token(TK_RETURN, current_token, p, white_ptr);
+      } else {
+        current_token = new_token(TK_IDENT, current_token, p, white_ptr);
+      }
       p = white_ptr;
       continue;
     }

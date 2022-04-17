@@ -107,7 +107,15 @@ void parse_program() {
 
 Node *parse_stmt() {
   printk("===parse_stmt===\n");
-  Node *node = parse_expr();
+  Node *node;
+  if (consume(TK_RETURN)) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = parse_expr();
+  } else {
+    node = parse_expr();
+  }
+
   expect(";");
   printk("===parse_stmt===\n");
   return node;
@@ -124,11 +132,12 @@ Node *parse_expr() {
 Node *parse_assign() {
   printk("===parse_assign===\n");
   Node *node = parse_equality();
-  if (consume("=")) {
+  if (consume_op("=")) {
     node = new_node(ND_ASSIGN, node, parse_assign());
     printk("===parse_assign===\n");
     return node;
   }
+
   printk("===parse_assign===\n");
   return node;
 }
@@ -137,9 +146,9 @@ static Node *parse_equality() {
   printk("===parse_eq===\n");
   Node *node = parse_relational();
   for (;;) {
-    if (consume("==")) {
+    if (consume_op("==")) {
       node = new_node(ND_EQ, node, parse_relational());
-    } else if (consume("!=")) {
+    } else if (consume_op("!=")) {
       node = new_node(ND_NEQ, node, parse_relational());
     } else {
       ast_printd(node);
@@ -153,14 +162,14 @@ static Node *parse_relational() {
   printk("===parse_relational===\n");
   Node *node = parse_add();
   for (;;) {
-    if (consume("<")) {
+    if (consume_op("<")) {
       node = new_node(ND_SMALLER, node, parse_add());
-    } else if (consume("<=")) {
+    } else if (consume_op("<=")) {
       node = new_node(ND_SMALLEREQ, node, parse_add());
-    } else if (consume(">")) {
+    } else if (consume_op(">")) {
       // reverse args and reverse op (`>` -> `<`)
       node = new_node(ND_SMALLER, parse_add(), node);
-    } else if (consume(">=")) {
+    } else if (consume_op(">=")) {
       // reverse args and reverse op (`>=` -> `<=`)
       node = new_node(ND_SMALLEREQ, parse_add(), node);
     } else {
@@ -175,9 +184,9 @@ static Node *parse_add() {
   printk("===parse_add===\n");
   Node *node = parse_mul();
   for (;;) {
-    if (consume("+")) {
+    if (consume_op("+")) {
       node = new_node(ND_ADD, node, parse_mul());
-    } else if (consume("-")) {
+    } else if (consume_op("-")) {
       node = new_node(ND_SUB, node, parse_mul());
     } else {
       ast_printd(node);
@@ -191,9 +200,9 @@ static Node *parse_mul() {
   printk("===parse_mul===\n");
   Node *node = parse_unary();
   for (;;) {
-    if (consume("*")) {
+    if (consume_op("*")) {
       node = new_node(ND_MUL, node, parse_unary());
-    } else if (consume("/")) {
+    } else if (consume_op("/")) {
       node = new_node(ND_DIV, node, parse_unary());
     } else {
       ast_printd(node);
@@ -205,13 +214,13 @@ static Node *parse_mul() {
 
 static Node *parse_unary() {
   printk("===parse_unary===\n");
-  if (consume("+")) {
+  if (consume_op("+")) {
     // `+a` is same as just `a`
     Node *node = parse_primary();
     ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
-  } else if (consume("-")) {
+  } else if (consume_op("-")) {
     // `-a` is same as `0 - a`
     Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
     ast_printd(node);
@@ -227,7 +236,7 @@ static Node *parse_unary() {
 
 Node *parse_primary() {
   printk("===parse_primary===\n");
-  if (consume("(")) {
+  if (consume_op("(")) {
     Node *node = parse_expr();
     expect(")");
 
@@ -243,6 +252,7 @@ Node *parse_primary() {
     return node;
   }
 
+  // loop here
   Token *token = consume_ident();
   Node *node = new_node_local_variable(token);
   return node;

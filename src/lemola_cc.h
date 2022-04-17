@@ -30,6 +30,7 @@ typedef enum {
   ND_ASSIGN,    // =
   ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
+  ND_RETURN,    // return
 } NodeKind;
 
 typedef struct Node Node;
@@ -74,6 +75,7 @@ void parser_test();
 typedef enum {
   TK_RESERVED, // operator
   TK_IDENT,    // identifier
+  TK_RETURN,   // return
   TK_NUM,      // number literal
   TK_EOF,      // End of File
 } TokenKind;
@@ -92,7 +94,11 @@ extern Token *token; // Token dealing with
 
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char *op);
+bool consume_op(char *op);
+
+// When the next token is expected TokenKind, then token will be replaced with
+// next token and return true. otherwise return false
+bool consume(TokenKind kind);
 
 // When the next token is expected operator, then token will be replaced with
 // next token. Otherwise call `error()`

@@ -14,6 +14,7 @@ enum NodeKind {
     ND_ASSIGN,    // =
     ND_LVAR,      // Local Variable
     ND_NUM,       // Integer
+    ND_RETURN,    // return
 }
 
 #[repr(C)]
@@ -42,6 +43,11 @@ impl Debug for Node<'_> {
                 .debug_struct("Node")
                 .field("kind", &self.kind)
                 .field("offset", &self.offset)
+                .finish(),
+            ND_RETURN => f
+                .debug_struct("Node")
+                .field("kind", &self.kind)
+                .field("lhs", &self.lhs)
                 .finish(),
             _ => f
                 .debug_struct("Node")
@@ -72,6 +78,7 @@ pub extern "C" fn ast_print(node: &Node) {
 enum TokenKind {
     TK_RESERVED,
     TK_IDNET,
+    TK_RETURN,
     TK_NUM,
     TK_EOF,
 }

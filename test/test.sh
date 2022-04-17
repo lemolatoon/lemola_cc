@@ -54,5 +54,9 @@ assert 2 "a = (3 + 3); b = a * (a + 5); c = a < b; c * 2;"
 assert 6 "foo = 2; bar = 4; foo + bar;"
 assert 52 "kekkounagaihennsuu = 98; korematanagaihennsuu = kekkounagaihennsuu / 2; korematanagaihennsuu + 3;"
 assert 9 "a = 3; bar = (3 * a); ky = (bar * bar);   ky / bar      ;    "
+assert 16 "abc = 2; abc = abc * 2; abc = abc * 2; kk = 2; abc = (abc * kk); abc;"
+assert 1 "return 1;"
+assert 20 "returnx = 2; return (returnx + 9 * returnx);"
+assert 55 "abc = 55; return abc; 4 + 4 + 4;"
 
 echo OK

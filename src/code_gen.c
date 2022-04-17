@@ -17,6 +17,15 @@ static void generate_left_value(FILE *fp, Node *node) {
 // generate stack-like operator asm
 void generate_assembly(FILE *fp, Node *node) {
   switch (node->kind) {
+  case ND_RETURN:
+    generate_assembly(fp, node->lhs);
+    // pop node->lhs evaluation
+    fprintf(fp, " pop rax\n");
+    // revert rsp to mem which is storing the previous rbp
+    fprintf(fp, " mov rsp, rbp\n");
+    // revert rbp
+    fprintf(fp, " pop rbp\n");
+    fprintf(fp, " ret\n");
   case ND_NUM:
     fprintf(fp, " push %d\n", node->value);
     return;
