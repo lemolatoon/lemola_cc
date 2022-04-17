@@ -27,16 +27,19 @@ typedef enum {
   ND_SUB,       // -
   ND_MUL,       // *
   ND_DIV,       // /
+  ND_ASSIGN,    // =
+  ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
 } NodeKind;
 
 typedef struct Node Node;
 
 struct Node {
-  NodeKind kind;
-  Node *lhs;
-  Node *rhs;
-  int value;
+  NodeKind kind; // type of Node
+  Node *lhs;     // left hand side
+  Node *rhs;     // right hand side
+  int value;     // when (kind == ND_NUM)
+  int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
 Node *parse_expr();
@@ -46,6 +49,8 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 
 // Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val);
+
+Node *new_node_local_variable(char *);
 
 // --------------parser----------------
 
@@ -84,6 +89,13 @@ void expect(char *op);
 // and then return the number. Otherwise, call `error()`.
 int expect_number();
 
+// Peek next Token and return whether next token is <num> or not.
+bool peek_number();
+
+// When the next token is ident, then token will be replaced with next token
+// and then return the number. Otherwise, call error()
+char *expect_ident();
+
 bool at_eof();
 
 // Create new token and make current_token link to it.
@@ -97,7 +109,7 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-void generate_assembly(Node *node, FILE *fp);
+void generate_assembly(FILE *fp, Node *node);
 // -------------code_gen---------------
 
 // ---------------utils----------------

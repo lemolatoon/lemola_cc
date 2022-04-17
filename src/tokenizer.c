@@ -77,6 +77,26 @@ int expect_number() {
   return val;
 }
 
+// Peek next Token and return whether next token is <num> or not.
+bool peek_number() {
+  if (token->kind != TK_NUM) {
+    return false;
+  }
+
+  return true;
+}
+
+// When the next token is ident, then token will be replaced with next token
+// and then return the number. Otherwise, call error()
+char *expect_ident() {
+  if (token->kind != TK_IDENT) {
+    error_at("expect ident but got : %d (token->kind)\n", token->kind);
+  }
+  char *name_ptr = token->str;
+  token = token->next;
+  return name_ptr;
+}
+
 bool at_eof() { return token->kind == TK_EOF; }
 
 // Create new token and make current_token link to it.
@@ -103,7 +123,7 @@ static bool starts_with(char *p, char *q) {
 static bool is_punctuator(char *p) {
   if (starts_with(p, "+") || starts_with(p, "-") || starts_with(p, "*") ||
       starts_with(p, "/") || starts_with(p, "(") || starts_with(p, ")") ||
-      *p == '<' || *p == '>') {
+      *p == '<' || *p == '>' || *p == '=') {
     return true;
   } else {
     return false;
@@ -149,6 +169,8 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // ASSIGN
+
     // Punctuators
 
     int punc_len = read_punctuator(p);
@@ -162,6 +184,7 @@ Token *tokenize(char *p) {
     // currently only support one-length variable
     if ('a' <= *p && *p <= 'z') {
       current_token = new_token(TK_IDENT, current_token, p, p + 1);
+      p += 1;
       continue;
     }
 

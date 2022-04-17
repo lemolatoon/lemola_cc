@@ -5,6 +5,7 @@
 
 Node *parse_expr();
 static Node *parse_equality();
+static Node *parse_assign();
 static Node *parse_relational();
 static Node *parse_add();
 static Node *parse_mul();
@@ -27,30 +28,40 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
 
 // Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val) {
-  printk("NEW NUM NODE\n");
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->value = val;
-  printk("kind: %d, value: %d\n", node->kind, node->value);
+  return node;
+}
+
+// Create and return local variable Node
+// Currently name is used for calculating offset from rbp
+Node *new_node_local_variable(char *name) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_LVAR;
+  // currently 'a' to 'z' local variable is internally reserved
+  node->offset = (*name - 'a' + 1) * 8;
   return node;
 }
 
 Node *parse_expr() {
   printk("===parse_expr===\n");
+  Node *node = parse_assign();
+  ast_printd(node);
+  printk("==parse_end=====\n");
+  return node;
+}
+
+Node *parse_assign() {
+  printk("===parse_assign===\n");
   Node *node = parse_equality();
-  for (;;) {
-    if (consume("+")) {
-      printk("ADD\n");
-      node = new_node(ND_ADD, node, parse_mul());
-    } else if (consume("-")) {
-      printk("SUB\n");
-      node = new_node(ND_SUB, node, parse_mul());
-    } else {
-      ast_printd(node);
-      printk("==parse_end=====\n");
-      return node;
-    }
+  if (consume("=")) {
+    node = new_node(ND_ASSIGN, node, parse_assign());
+    printk("===parse_assign===\n");
+    return node;
   }
+  printk("===parse_assign===\n");
+  return node;
 }
 
 static Node *parse_equality() {
@@ -156,9 +167,14 @@ Node *parse_primary() {
     return node;
   }
 
-  Node *node = new_node_num(expect_number());
-  ast_printd(node);
-  printk("===parse_primary=====\n");
+  if (peek_number()) {
+    Node *node = new_node_num(expect_number());
+    ast_printd(node);
+    printk("===parse_primary=====\n");
+    return node;
+  }
+
+  Node *node = new_node_local_variable(expect_ident());
   return node;
 }
 // --------------parser----------------
