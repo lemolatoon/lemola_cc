@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
   // tokenize and parse
   token = tokenize(&s[0]);
   Node *node = parse_expr();
+  ast_printd(node);
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");

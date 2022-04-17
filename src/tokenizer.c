@@ -41,10 +41,6 @@ static void error_token(Token *token, char *fmt, ...) {
 
 // Ensures the current token matches op 'op'
 static bool equal(char *op) {
-  token_printd(token);
-  printk("(%d,", token->kind == TK_RESERVED);
-  printk("%d,", (int)strlen(op) == token->len);
-  printk("%d)\n", strncmp(token->str, op, token->len) == 0);
   return token->kind == TK_RESERVED && (int)strlen(op) == token->len &&
          strncmp(token->str, op, token->len) == 0;
 }
@@ -53,7 +49,6 @@ static bool equal(char *op) {
 // next token and return true. otherwise return false
 bool consume(char *op) {
   if (!equal(op)) {
-    printk("This is not %c, this is %c\n", *op, *(token->str));
     // When current token is not expected punctuator or, even is not punctuator
     return false;
   }

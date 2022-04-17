@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-//#define Debug
+// #define Debug
 //#define RUSTD
 
 #ifdef Debug
@@ -19,11 +19,19 @@
 
 // --------------parser----------------
 typedef enum {
-  ND_ADD, // +
-  ND_SUB, // -
-  ND_MUL, // *
-  ND_DIV, // /
-  ND_NUM, // Integer
+  ND_EQ,        // ==
+  ND_NEQ,       // !=
+  ND_SMALLER,   // <
+  ND_SMALLEREQ, // <=
+  ND_BIGGER,    // >
+  ND_BIGGEREQ,  // >=
+  ND_PLUS,      // + (single)
+  ND_MINUS,     // - (single)
+  ND_ADD,       // +
+  ND_SUB,       // -
+  ND_MUL,       // *
+  ND_DIV,       // /
+  ND_NUM,       // Integer
 } NodeKind;
 
 typedef struct Node Node;
@@ -35,13 +43,13 @@ struct Node {
   int value;
 };
 
+Node *parse_expr();
+
+// Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 
 Node *new_node_num(int val);
 
-Node *parse_expr();
-Node *parse_mul();
-Node *parse_primary();
 // --------------parser----------------
 
 void parser_test();
