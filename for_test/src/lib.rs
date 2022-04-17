@@ -7,10 +7,6 @@ enum NodeKind {
     ND_NEQ,       // !=
     ND_SMALLER,   // <
     ND_SMALLEREQ, // <=
-    ND_BIGGER,    // >
-    ND_BIGGEREQ,  // >=
-    ND_PLUS,      // + (single)
-    ND_MINUS,     // - (single)
     ND_ADD,       // +
     ND_SUB,       // -
     ND_MUL,       // *
@@ -35,11 +31,6 @@ impl Debug for Node<'_> {
                 .debug_struct("Node")
                 .field("kind", &self.kind)
                 .field("value", &self.value)
-                .finish(),
-            ND_PLUS | ND_MINUS => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("lhs", &self.lhs)
                 .finish(),
             _ => f
                 .debug_struct("Node")

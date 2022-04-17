@@ -25,21 +25,13 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
+// Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val) {
   printk("NEW NUM NODE\n");
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->value = val;
   printk("kind: %d, value: %d\n", node->kind, node->value);
-  return node;
-}
-
-Node *new_node_single_op(NodeKind kind, Node *lhs) {
-  assertd(kind == ND_PLUS || kind == ND_MINUS);
-  assertd(lhs != NULL);
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = kind;
-  node->lhs = lhs;
   return node;
 }
 
@@ -86,9 +78,11 @@ static Node *parse_relational() {
     } else if (consume("<=")) {
       node = new_node(ND_SMALLEREQ, node, parse_add());
     } else if (consume(">")) {
-      node = new_node(ND_BIGGER, node, parse_add());
+      // reverse args and reverse op (`>` -> `<`)
+      node = new_node(ND_SMALLER, parse_add(), node);
     } else if (consume(">=")) {
-      node = new_node(ND_BIGGEREQ, node, parse_add());
+      // reverse args and reverse op (`>=` -> `<=`)
+      node = new_node(ND_SMALLEREQ, parse_add(), node);
     } else {
       ast_printd(node);
       printk("===prase_relational=====\n");
@@ -132,12 +126,14 @@ static Node *parse_mul() {
 static Node *parse_unary() {
   printk("===parse_unary===\n");
   if (consume("+")) {
-    Node *node = new_node_single_op(ND_PLUS, parse_primary());
+    // `+a` is same as just `a`
+    Node *node = parse_primary();
     ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
   } else if (consume("-")) {
-    Node *node = new_node_single_op(ND_MINUS, parse_primary());
+    // `-a` is same as `0 - a`
+    Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
     ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
