@@ -27,25 +27,44 @@ typedef enum {
   ND_SUB,       // -
   ND_MUL,       // *
   ND_DIV,       // /
+  ND_ASSIGN,    // =
+  ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
+  ND_RETURN,    // return
 } NodeKind;
 
 typedef struct Node Node;
 
 struct Node {
-  NodeKind kind;
-  Node *lhs;
-  Node *rhs;
-  int value;
+  NodeKind kind; // type of Node
+  Node *lhs;     // left hand side
+  Node *rhs;     // right hand side
+  int value;     // when (kind == ND_NUM)
+  int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
-Node *parse_expr();
+typedef struct LVar LVar;
+
+struct LVar {
+  LVar *next; // next variable or NULL
+  char *name; // name of variable
+  int len;    // length of variable name
+  int offset; // offset from rbp
+};
+
+// Ensure to access after calling `parse_program()`.
+// The last element will be set NULL.
+extern Node *code[100];
+
+void parse_program();
 
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 
 // Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val);
+
+Node *new_node_local_variable();
 
 // --------------parser----------------
 
@@ -55,6 +74,8 @@ void parser_test();
 
 typedef enum {
   TK_RESERVED, // operator
+  TK_IDENT,    // identifier
+  TK_RETURN,   // return
   TK_NUM,      // number literal
   TK_EOF,      // End of File
 } TokenKind;
@@ -73,7 +94,11 @@ extern Token *token; // Token dealing with
 
 // When the next token is expected operator, then token will be replaced with
 // next token and return true. otherwise return false
-bool consume(char *op);
+bool consume_op(char *op);
+
+// When the next token is expected TokenKind, then token will be replaced with
+// next token and return true. otherwise return false
+bool consume(TokenKind kind);
 
 // When the next token is expected operator, then token will be replaced with
 // next token. Otherwise call `error()`
@@ -83,12 +108,14 @@ void expect(char *op);
 // and then return the number. Otherwise, call `error()`.
 int expect_number();
 
-bool at_eof();
+// Peek next Token and return whether next token is <num> or not.
+bool peek_number();
 
-// Create new token and make current_token link to it.
-// char *str: the head pointer of token str in whole source
-// Token *new_token(TokenKind kind, Token *current_token, char *str);
-// TODO: is new_token() private func?
+// When the next token is ident, then token will be replaced with next token
+// and then return Token* (TK_IDNET). Otherwise, call error()
+Token *consume_ident();
+
+bool at_eof();
 
 // Tokenize char[] p and return Head of Token LinkedList
 Token *tokenize(char *p);
@@ -96,7 +123,8 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-void generate_assembly(Node *node, FILE *fp);
+void generate_assembly(FILE *fp, Node *node);
+void get_exit(FILE *fp);
 // -------------code_gen---------------
 
 // ---------------utils----------------
@@ -106,10 +134,12 @@ void error(char *fmt, ...);
 void ast_print(Node *node);
 void hello();
 void token_print(Token *token);
+void lvar_print(LVar *lvar);
 
 #define ast_printd(node) ast_print(node)
 #define hellod() hello()
 #define token_printd(token) token_print(token)
+#define lvar_printd(lvar) lvar_print(lvar)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -118,6 +148,9 @@ void token_print(Token *token);
   do {                                                                         \
   } while (0)
 #define token_printd(token)                                                    \
+  do {                                                                         \
+  } while (0)
+#define lvar_printd(token)                                                     \
   do {                                                                         \
   } while (0)
 #endif

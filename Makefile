@@ -19,7 +19,8 @@ else
 endif
 
 ifdef Debug
-	CFLAGS += -DDebug
+	CFLAGS += -DDebug -g3
+	ASFLAG  += -g3
 endif
 
 lemola_cc: $(OBJS) $(RUSTLIB)
@@ -39,7 +40,7 @@ $(RUSTLIB): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
 	cp $(RUSTLIB) $(MKFILE_PATH)/dynlib/ 
 
 a.out: src.s
-	$(CC) src.s 
+	$(CC) src.s $(ASFLAG)
 
 .PHONY: clean
 clean:
@@ -53,3 +54,8 @@ test: lemola_cc
 .PHONY: rev_asm
 rev_asm: a.out
 	objdump -d -M intel a.out | less
+
+run: a.out
+	./a.out
+	echo $$?
+ 
