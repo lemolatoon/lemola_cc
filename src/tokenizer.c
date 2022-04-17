@@ -41,10 +41,6 @@ static void error_token(Token *token, char *fmt, ...) {
 
 // Ensures the current token matches op 'op'
 static bool equal(char *op) {
-  token_printd(token);
-  printk("(%d,", token->kind == TK_RESERVED);
-  printk("%d,", (int)strlen(op) == token->len);
-  printk("%d)\n", strncmp(token->str, op, token->len) == 0);
   return token->kind == TK_RESERVED && (int)strlen(op) == token->len &&
          strncmp(token->str, op, token->len) == 0;
 }
@@ -53,7 +49,6 @@ static bool equal(char *op) {
 // next token and return true. otherwise return false
 bool consume(char *op) {
   if (!equal(op)) {
-    printk("This is not %c, this is %c\n", *op, *(token->str));
     // When current token is not expected punctuator or, even is not punctuator
     return false;
   }
@@ -106,8 +101,9 @@ static bool starts_with(char *p, char *q) {
 // Caller Saved: length of p must be 1 or below(not punctuator)
 // Return whether the given punctuator's length is one or not.
 static bool is_punctuator(char *p) {
-  if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
-      *p == ')') {
+  if (starts_with(p, "+") || starts_with(p, "-") || starts_with(p, "*") ||
+      starts_with(p, "/") || starts_with(p, "(") || starts_with(p, ")") ||
+      *p == '<' || *p == '>') {
     return true;
   } else {
     return false;
@@ -154,6 +150,7 @@ Token *tokenize(char *p) {
     }
 
     // Punctuators
+
     int punc_len = read_punctuator(p);
     if (punc_len >= 1) {
       current_token = new_token(TK_RESERVED, current_token, p, p + punc_len);
@@ -161,7 +158,7 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error_at(p, "Impossible to tokenize: unexpected char: '%c'\n", p);
+    error_at(p, "Impossible to tokenize: unexpected char: '%d'\n", (int)*p);
   }
 
   new_token(TK_EOF, current_token, p, p);
