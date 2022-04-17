@@ -3,11 +3,19 @@
 #[repr(C)]
 #[derive(Debug)]
 enum NodeKind {
-    ND_ADD = 0,
-    ND_SUB = 1,
-    ND_MUL = 2,
-    ND_DIV = 3,
-    ND_NUM = 4,
+    ND_EQ,        // ==
+    ND_NEQ,       // !=
+    ND_SMALLER,   // <
+    ND_SMALLEREQ, // <=
+    ND_BIGGER,    // >
+    ND_BIGGEREQ,  // >=
+    ND_PLUS,      // + (single)
+    ND_MINUS,     // - (single)
+    ND_ADD,       // +
+    ND_SUB,       // -
+    ND_MUL,       // *
+    ND_DIV,       // /
+    ND_NUM,       // Integer
 }
 
 #[repr(C)]
@@ -21,17 +29,24 @@ pub struct Node<'a> {
 use std::{fmt::Debug, os::raw::c_char};
 impl Debug for Node<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if matches!(self.kind, NodeKind::ND_NUM) {
-            f.debug_struct("Node")
+        use NodeKind::*;
+        match self.kind {
+            ND_NUM => f
+                .debug_struct("Node")
                 .field("kind", &self.kind)
                 .field("value", &self.value)
-                .finish()
-        } else {
-            f.debug_struct("Node")
+                .finish(),
+            ND_PLUS | ND_MINUS => f
+                .debug_struct("Node")
+                .field("kind", &self.kind)
+                .field("lhs", &self.lhs)
+                .finish(),
+            _ => f
+                .debug_struct("Node")
                 .field("kind", &self.kind)
                 .field("lhs", &self.lhs)
                 .field("rhs", &self.rhs)
-                .finish()
+                .finish(),
         }
     }
 }
@@ -43,9 +58,7 @@ pub extern "C" fn hello() {
 
 #[no_mangle]
 pub extern "C" fn ast_print(node: &Node) {
-    println!("======RUST START========");
     println!("{:?}", node);
-    println!("======RUST END==========");
 }
 
 // token

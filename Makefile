@@ -4,8 +4,8 @@ OBJS=$(SRCS:.c=.o)
 CC = clang
 LDFLAGS =
 
-# RUSTD = 1
-# Debug = 1
+#RUSTD = 1
+#Debug = 1
 
 ifdef RUSTD
 	CFLAGS += -DRUSTD
