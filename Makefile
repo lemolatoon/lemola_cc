@@ -3,6 +3,7 @@ SRCS=$(wildcard src/*.c)
 OBJS=$(SRCS:.c=.o)
 CC = clang
 LDFLAGS =
+MKFILE_PATH = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 #RUSTD = 1
 #Debug = 1
@@ -11,7 +12,7 @@ ifdef RUSTD
 	CFLAGS += -DRUSTD
 	LIBNAME = libfor_test.so
 	RUSTLIB = for_test/target/debug/$(LIBNAME)
-	RUSTLIBPATH = $(HOME)/bin/$(LIBNAME)
+	RUSTLIBPATH = $(MKFILE_PATH)dynlib/$(LIBNAME)
 else
 	LDFLAGS += -static
 	CFLAGS += -static
@@ -31,11 +32,11 @@ $(OBJS): src/lemola_cc.h
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
-$(RUSTLIB): for_test/src/lib.rs
+$(RUSTLIB): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
 	cd for_test && \
 	cargo build && \
 	cd .. && \
-	cp $(RUSTLIB) $(HOME)/bin/$(LIBNAME)
+	cp $(RUSTLIB) $(MKFILE_PATH)/dynlib/ 
 
 a.out: src.s
 	$(CC) src.s 

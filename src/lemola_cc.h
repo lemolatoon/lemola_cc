@@ -23,10 +23,6 @@ typedef enum {
   ND_NEQ,       // !=
   ND_SMALLER,   // <
   ND_SMALLEREQ, // <=
-  ND_BIGGER,    // >
-  ND_BIGGEREQ,  // >=
-  ND_PLUS,      // + (single)
-  ND_MINUS,     // - (single)
   ND_ADD,       // +
   ND_SUB,       // -
   ND_MUL,       // *
@@ -48,6 +44,7 @@ Node *parse_expr();
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 
+// Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val);
 
 // --------------parser----------------

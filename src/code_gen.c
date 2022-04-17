@@ -15,6 +15,32 @@ void generate_assembly(Node *node, FILE *fp) {
   fprintf(fp, " pop rax\n");
 
   switch (node->kind) {
+  case ND_EQ:
+    fprintf(fp, " cmp rax, rdi\n");
+    // copy flag register to al(= lower 8bit of rax)
+    // if rax == rdi then 1, otherwise 0
+    fprintf(fp, " sete al\n");
+    // zero-fill rax with al remained in rax
+    fprintf(fp, " movzx rax, al\n");
+    break;
+  case ND_NEQ:
+    fprintf(fp, " cmp rax, rdi\n");
+    // if rax == rdi then 0, otherwise 1
+    fprintf(fp, " setne al\n");
+    // zero-fill rax with al remained in rax
+    fprintf(fp, " movzx rax, al\n");
+    break;
+  case ND_SMALLER:
+    fprintf(fp, " cmp rax, rdi\n");
+    // if rax < rdi then 1, otherwise 0
+    fprintf(fp, " setl al\n"); // set if less
+    fprintf(fp, " movzx rax, al\n");
+    break;
+  case ND_SMALLEREQ:
+    fprintf(fp, " cmp rax, rdi\n");
+    fprintf(fp, " setle al\n"); // set if less or eq
+    fprintf(fp, " movzx rax, al\n");
+    break;
   case ND_ADD:
     fprintf(fp, " add rax, rdi\n");
     break;
