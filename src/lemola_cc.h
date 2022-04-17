@@ -55,6 +55,7 @@ void parser_test();
 
 typedef enum {
   TK_RESERVED, // operator
+  TK_IDENT,    // identifier
   TK_NUM,      // number literal
   TK_EOF,      // End of File
 } TokenKind;

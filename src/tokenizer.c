@@ -158,6 +158,13 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    // Identifier
+    // currently only support one-length variable
+    if ('a' <= *p && *p <= 'z') {
+      current_token = new_token(TK_IDENT, current_token, p, p + 1);
+      continue;
+    }
+
     error_at(p, "Impossible to tokenize: unexpected char: '%d'\n", (int)*p);
   }
 
