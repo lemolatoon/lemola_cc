@@ -121,9 +121,8 @@ static bool starts_with(char *p, char *q) {
 // Caller Saved: length of p must be 1 or below(not punctuator)
 // Return whether the given punctuator's length is one or not.
 static bool is_punctuator(char *p) {
-  if (starts_with(p, "+") || starts_with(p, "-") || starts_with(p, "*") ||
-      starts_with(p, "/") || starts_with(p, "(") || starts_with(p, ")") ||
-      *p == '<' || *p == '>' || *p == '=') {
+  if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
+      *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';') {
     return true;
   } else {
     return false;

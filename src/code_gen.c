@@ -25,6 +25,8 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintf(fp, " pop rax\n");
     // load value rax pointing to
     fprintf(fp, " mov rax, [rax]\n");
+    // push rax as result of evaluation
+    fprintf(fp, " push rax\n");
     return;
   case ND_ASSIGN:
     generate_left_value(fp, node->lhs);
@@ -92,4 +94,11 @@ void generate_assembly(FILE *fp, Node *node) {
   }
 
   fprintf(fp, " push rax\n");
+}
+
+// For debugging
+void gen_exit(FILE *fp) {
+  fprintf(fp, " mov rdi, rax\n"); // exit code
+  fprintf(fp, " mov rax, 0x3c\n");
+  fprintf(fp, " syscall\n");
 }

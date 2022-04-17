@@ -42,7 +42,11 @@ struct Node {
   int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
-Node *parse_expr();
+// Ensure to access after calling `parse_program()`.
+// The last element will be set NULL.
+extern Node *code[100];
+
+void parse_program();
 
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
@@ -110,6 +114,7 @@ Token *tokenize(char *p);
 
 // -------------code_gen---------------
 void generate_assembly(FILE *fp, Node *node);
+void get_exit(FILE *fp);
 // -------------code_gen---------------
 
 // ---------------utils----------------

@@ -3,7 +3,8 @@
 
 // --------------parser----------------
 
-Node *parse_expr();
+Node *parse_stmt();
+static Node *parse_expr();
 static Node *parse_equality();
 static Node *parse_assign();
 static Node *parse_relational();
@@ -44,11 +45,32 @@ Node *new_node_local_variable(char *name) {
   return node;
 }
 
+// Ensure to access after calling `parse_program()`.
+// The last element will be set NULL.
+Node *code[100];
+
+void parse_program() {
+  int i = 0;
+  while (!at_eof()) {
+    code[i] = parse_stmt();
+    i++;
+  }
+  code[i] = NULL;
+}
+
+Node *parse_stmt() {
+  printk("===parse_stmt===\n");
+  Node *node = parse_expr();
+  expect(";");
+  printk("===parse_stmt===\n");
+  return node;
+}
+
 Node *parse_expr() {
   printk("===parse_expr===\n");
   Node *node = parse_assign();
   ast_printd(node);
-  printk("==parse_end=====\n");
+  printk("==parse_expr=====\n");
   return node;
 }
 

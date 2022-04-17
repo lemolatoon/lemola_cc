@@ -54,3 +54,8 @@ test: lemola_cc
 .PHONY: rev_asm
 rev_asm: a.out
 	objdump -d -M intel a.out | less
+
+run: a.out
+	./a.out
+	echo $$?
+ 
