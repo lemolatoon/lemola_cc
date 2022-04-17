@@ -117,3 +117,32 @@ impl Debug for Token<'_> {
 pub extern "C" fn token_print(token: &Token) {
     println!("{:?}", token);
 }
+
+#[repr(C)]
+pub struct LVar<'a> {
+    next: *const LVar<'a>,
+    name: &'a c_char,
+    len: c_int,
+    offset: c_int,
+}
+
+impl Debug for LVar<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(next) = unsafe { self.next.as_ref() } {
+            f.debug_struct("LVar")
+                .field("next", next)
+                .field("name", &self.name)
+                .field("len", &self.len)
+                .field("offset", &self.offset)
+                .finish()
+        } else {
+            f.debug_struct("LVar is NULL").finish()
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lvar_print(lvar: &LVar<'_>) {
+    println!("RUSTSTART!!!!!!!!!!!!!!!!!!");
+    println!("{:?}", lvar);
+}

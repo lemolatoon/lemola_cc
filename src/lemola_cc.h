@@ -42,6 +42,15 @@ struct Node {
   int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
+typedef struct LVar LVar;
+
+struct LVar {
+  LVar *next; // next variable or NULL
+  char *name; // name of variable
+  int len;    // length of variable name
+  int offset; // offset from rbp
+};
+
 // Ensure to access after calling `parse_program()`.
 // The last element will be set NULL.
 extern Node *code[100];
@@ -54,7 +63,7 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 // Create and return `Node {kind: ND_NUM, value: val}`
 Node *new_node_num(int val);
 
-Node *new_node_local_variable(char *);
+Node *new_node_local_variable();
 
 // --------------parser----------------
 
@@ -97,15 +106,10 @@ int expect_number();
 bool peek_number();
 
 // When the next token is ident, then token will be replaced with next token
-// and then return the number. Otherwise, call error()
-char *expect_ident();
+// and then return Token* (TK_IDNET). Otherwise, call error()
+Token *consume_ident();
 
 bool at_eof();
-
-// Create new token and make current_token link to it.
-// char *str: the head pointer of token str in whole source
-// Token *new_token(TokenKind kind, Token *current_token, char *str);
-// TODO: is new_token() private func?
 
 // Tokenize char[] p and return Head of Token LinkedList
 Token *tokenize(char *p);
@@ -124,10 +128,12 @@ void error(char *fmt, ...);
 void ast_print(Node *node);
 void hello();
 void token_print(Token *token);
+void lvar_print(LVar *lvar);
 
 #define ast_printd(node) ast_print(node)
 #define hellod() hello()
 #define token_printd(token) token_print(token)
+#define lvar_printd(lvar) lvar_print(lvar)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -136,6 +142,9 @@ void token_print(Token *token);
   do {                                                                         \
   } while (0)
 #define token_printd(token)                                                    \
+  do {                                                                         \
+  } while (0)
+#define lvar_printd(token)                                                     \
   do {                                                                         \
   } while (0)
 #endif

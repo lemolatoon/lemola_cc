@@ -51,5 +51,8 @@ assert 5 "a = 5;"
 assert 92 "a = 4; b = 89 + 3;"
 assert 92 "a = 4; b = 89 + 3; b;"
 assert 2 "a = (3 + 3); b = a * (a + 5); c = a < b; c * 2;"
+assert 6 "foo = 2; bar = 4; foo + bar;"
+assert 52 "kekkounagaihennsuu = 98; korematanagaihennsuu = kekkounagaihennsuu / 2; korematanagaihennsuu + 3;"
+assert 9 "a = 3; bar = (3 * a); ky = (bar * bar);   ky / bar      ;    "
 
 echo OK

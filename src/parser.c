@@ -1,5 +1,6 @@
 #include "lemola_cc.h"
 #include <stdlib.h>
+#include <string.h>
 
 // --------------parser----------------
 
@@ -35,13 +36,59 @@ Node *new_node_num(int val) {
   return node;
 }
 
+// LinkedList of local variables
+LVar *locals;
+
+// find same lvar in linkedlist `locals`
+LVar *find_lvar(Token *tok) {
+  assertd(tok->kind == TK_IDENT);
+  for (LVar *var = locals; var != NULL; var = var->next) {
+    lvar_printd(var);
+    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len)) {
+      return var;
+    }
+  }
+  return NULL;
+}
+
 // Create and return local variable Node
 // Currently name is used for calculating offset from rbp
-Node *new_node_local_variable(char *name) {
+Node *new_node_local_variable(Token *tok) {
+  token_printd(tok);
+  assertd(tok->kind == TK_IDENT);
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_LVAR;
-  // currently 'a' to 'z' local variable is internally reserved
-  node->offset = (*name - 'a' + 1) * 8;
+
+  LVar *lvar = find_lvar(tok);
+  printk("OK?\n");
+  if (lvar != NULL) {
+    // Treat node as lvar
+    node->offset = lvar->offset;
+  } else {
+    printk("CREATE NEW LVAR\n");
+    // Create new local variable
+    printk("calloc\n");
+    lvar = calloc(1, sizeof(LVar));
+    // next var of lvar is head of locals
+    printk("lvar->next\n");
+    lvar->next = locals;
+    printk("lvar->name\n");
+    lvar->name = tok->str;
+    printk("lvar->len\n");
+    lvar->len = tok->len;
+    printk("lvar->offset\n");
+    if (locals == NULL) {
+      lvar->offset = 8;
+    } else {
+      lvar->offset = locals->offset + 8;
+    }
+    printk("node->offset\n");
+    node->offset = lvar->offset;
+    // set lvar head of locals
+    locals = lvar;
+    printk("FINISH CREATE LVAR\n");
+  }
+
   return node;
 }
 
@@ -196,7 +243,8 @@ Node *parse_primary() {
     return node;
   }
 
-  Node *node = new_node_local_variable(expect_ident());
+  Token *token = consume_ident();
+  Node *node = new_node_local_variable(token);
   return node;
 }
 // --------------parser----------------

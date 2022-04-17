@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
   printk("============tokenize!!==========\n");
   token = tokenize(&s[0]);
   printk("==========tokenize end!=========\n");
+
   printk("=============parse==============\n");
   parse_program();
   printk("===========parse end=============\n");

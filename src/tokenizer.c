@@ -88,13 +88,13 @@ bool peek_number() {
 
 // When the next token is ident, then token will be replaced with next token
 // and then return the number. Otherwise, call error()
-char *expect_ident() {
+Token *consume_ident() {
   if (token->kind != TK_IDENT) {
     error_at("expect ident but got : %d (token->kind)\n", token->kind);
   }
-  char *name_ptr = token->str;
-  token = token->next;
-  return name_ptr;
+  Token *ident = token;
+  token = ident->next;
+  return ident;
 }
 
 bool at_eof() { return token->kind == TK_EOF; }
@@ -180,10 +180,11 @@ Token *tokenize(char *p) {
     }
 
     // Identifier
-    // currently only support one-length variable
-    if ('a' <= *p && *p <= 'z') {
-      current_token = new_token(TK_IDENT, current_token, p, p + 1);
-      p += 1;
+    // possible characters that can be beside indent
+    char *white_ptr = strpbrk(p, " \n\t;)}");
+    if (white_ptr - p >= 1) {
+      current_token = new_token(TK_IDENT, current_token, p, white_ptr);
+      p = white_ptr;
       continue;
     }
 
