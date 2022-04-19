@@ -112,19 +112,57 @@ Node *parse_stmt() {
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = parse_expr();
+    expect(";");
+  } else if (consume(TK_IF)) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_IF;
+    expect("(");
+    node->condition = parse_expr();
+    expect(")");
+    node->then = parse_stmt();
+    if (consume(TK_ELSE)) {
+      printk("ELSE DETECTED\n");
+      node->els = parse_stmt();
+    }
+  } else if (consume(TK_WHILE)) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_WHILE;
+    expect("(");
+    node->condition = parse_expr();
+    expect(")");
+    node->then = parse_stmt();
+  } else if (consume(TK_FOR)) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_FOR;
+    expect("(");
+    if (!consume_op(";")) { // if initialization expr exsits
+      node->initialization = parse_expr();
+      expect(";");
+    } // else {node->initialization = NULL;}
+
+    if (!consume_op(";")) { // if condition expr exsits
+      node->condition = parse_expr();
+      expect(";");
+    } // else {node->condition = NULL;}
+
+    if (!consume_op(";")) { // if increment expr exsits
+      node->increment = parse_expr();
+    } // else {node->increment = NULL;}
+    expect(")");
+    node->then = parse_stmt();
   } else {
     node = parse_expr();
+    expect(";");
   }
 
-  expect(";");
   printk("===parse_stmt===\n");
+  ast_printd(node);
   return node;
 }
 
 Node *parse_expr() {
   printk("===parse_expr===\n");
   Node *node = parse_assign();
-  ast_printd(node);
   printk("==parse_expr=====\n");
   return node;
 }
@@ -151,7 +189,6 @@ static Node *parse_equality() {
     } else if (consume_op("!=")) {
       node = new_node(ND_NEQ, node, parse_relational());
     } else {
-      ast_printd(node);
       printk("==parse_eq=====\n");
       return node;
     }
@@ -173,7 +210,6 @@ static Node *parse_relational() {
       // reverse args and reverse op (`>=` -> `<=`)
       node = new_node(ND_SMALLEREQ, parse_add(), node);
     } else {
-      ast_printd(node);
       printk("===prase_relational=====\n");
       return node;
     }
@@ -189,7 +225,6 @@ static Node *parse_add() {
     } else if (consume_op("-")) {
       node = new_node(ND_SUB, node, parse_mul());
     } else {
-      ast_printd(node);
       printk("===parse_add=====\n");
       return node;
     }
@@ -205,7 +240,6 @@ static Node *parse_mul() {
     } else if (consume_op("/")) {
       node = new_node(ND_DIV, node, parse_unary());
     } else {
-      ast_printd(node);
       printk("===parse_mul=====\n");
       return node;
     }
@@ -217,18 +251,15 @@ static Node *parse_unary() {
   if (consume_op("+")) {
     // `+a` is same as just `a`
     Node *node = parse_primary();
-    ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("-")) {
     // `-a` is same as `0 - a`
     Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
-    ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
   } else {
     Node *node = parse_primary();
-    ast_printd(node);
     printk("===parse_unary=====\n");
     return node;
   }
@@ -240,14 +271,12 @@ Node *parse_primary() {
     Node *node = parse_expr();
     expect(")");
 
-    ast_printd(node);
     printk("===parse_primary=====\n");
     return node;
   }
 
   if (peek_number()) {
     Node *node = new_node_num(expect_number());
-    ast_printd(node);
     printk("===parse_primary=====\n");
     return node;
   }

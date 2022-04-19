@@ -28,6 +28,9 @@ typedef enum {
   ND_MUL,       // *
   ND_DIV,       // /
   ND_ASSIGN,    // =
+  ND_IF,        // if
+  ND_WHILE,     // while
+  ND_FOR,       // for
   ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
   ND_RETURN,    // return
@@ -39,8 +42,15 @@ struct Node {
   NodeKind kind; // type of Node
   Node *lhs;     // left hand side
   Node *rhs;     // right hand side
-  int value;     // when (kind == ND_NUM)
-  int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
+
+  Node *condition;      // if or while or for
+  Node *initialization; // for
+  Node *increment;      // for
+  Node *els;            // else
+  Node *then;           // if or while or for
+
+  int value;  // when (kind == ND_NUM)
+  int offset; // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
 typedef struct LVar LVar;

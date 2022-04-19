@@ -70,7 +70,10 @@ bool consume(TokenKind kind) {
 // next token. Otherwise call `error()`
 void expect(char *op) {
   if (!equal(op)) {
-    error_at(token->str, "'%c'ではありません", op);
+    token_printd(token);
+    fprintf(stderr, "expected '%s', but got ", op);
+    fprintf(stderr, "`%s`\n", token->str);
+    error_at(token->str, "expected '%s', but got'%c'", op, token->str);
   }
   token = token->next;
 }
@@ -203,13 +206,12 @@ Token *tokenize(char *p) {
     int len = white_ptr - p;
     if (len >= 1) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return
-        printk("RETURN!!\n");
         current_token = new_token(TK_RETURN, current_token, p, white_ptr);
       } else if (len == 2 && !strncmp(p, "if", 2)) {
         current_token = new_token(TK_IF, current_token, p, white_ptr);
       } else if (len == 5 && !strncmp(p, "while", 5)) {
         current_token = new_token(TK_WHILE, current_token, p, white_ptr);
-      } else if (len == 3 && !strncmp(TK_FOR, "for", 3)) {
+      } else if (len == 3 && !strncmp(p, "for", 3)) {
         current_token = new_token(TK_FOR, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);

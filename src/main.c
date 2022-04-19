@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
   // tokenize and parse
   printk("============tokenize!!==========\n");
   token = tokenize(&s[0]);
-  exit(0);
   printk("==========tokenize end!=========\n");
 
   printk("=============parse==============\n");
   parse_program();
+  exit(4);
   printk("===========parse end=============\n");
 
   // output starting part of assembly
