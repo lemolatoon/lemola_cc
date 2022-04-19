@@ -76,11 +76,15 @@ pub extern "C" fn ast_print(node: &Node) {
 #[repr(C)]
 #[derive(Debug)]
 enum TokenKind {
-    TK_RESERVED,
-    TK_IDNET,
-    TK_RETURN,
-    TK_NUM,
-    TK_EOF,
+    TK_RESERVED, // operator
+    TK_IDENT,    // identifier
+    TK_RETURN,   // return
+    TK_IF,       // if
+    TK_WHILE,    // while
+    TK_FOR,      // for
+    TK_ELSE,     // else
+    TK_NUM,      // number literal
+    TK_EOF,      // End of File
 }
 
 #[repr(C)]

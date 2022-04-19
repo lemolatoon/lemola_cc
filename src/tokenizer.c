@@ -205,6 +205,12 @@ Token *tokenize(char *p) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return
         printk("RETURN!!\n");
         current_token = new_token(TK_RETURN, current_token, p, white_ptr);
+      } else if (len == 2 && !strncmp(p, "if", 2)) {
+        current_token = new_token(TK_IF, current_token, p, white_ptr);
+      } else if (len == 5 && !strncmp(p, "while", 5)) {
+        current_token = new_token(TK_WHILE, current_token, p, white_ptr);
+      } else if (len == 3 && !strncmp(TK_FOR, "for", 3)) {
+        current_token = new_token(TK_FOR, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);
       }

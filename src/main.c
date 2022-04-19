@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lemola_cc.h"
@@ -24,6 +25,7 @@ int main(int argc, char **argv) {
   // tokenize and parse
   printk("============tokenize!!==========\n");
   token = tokenize(&s[0]);
+  exit(0);
   printk("==========tokenize end!=========\n");
 
   printk("=============parse==============\n");

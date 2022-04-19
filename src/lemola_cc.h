@@ -76,6 +76,10 @@ typedef enum {
   TK_RESERVED, // operator
   TK_IDENT,    // identifier
   TK_RETURN,   // return
+  TK_IF,       // if
+  TK_WHILE,    // while
+  TK_FOR,      // for
+  TK_ELSE,     // else
   TK_NUM,      // number literal
   TK_EOF,      // End of File
 } TokenKind;
