@@ -137,7 +137,8 @@ static bool starts_with(char *p, char *q) {
 // Return whether the given punctuator's length is one or not.
 static bool is_punctuator(char *p) {
   if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
-      *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';') {
+      *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' ||
+      *p == '{' || *p == '}' || *p == '%') {
     return true;
   } else {
     return false;
@@ -222,7 +223,8 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    error_at(p, "Impossible to tokenize: unexpected char: '%d'\n", (int)*p);
+    printf("Unexpected!!\nRest is here :\n%s", user_input);
+    error_at(p, "Impossible to tokenize: unexpected char: '%s'\n", p);
   }
 
   new_token(TK_EOF, current_token, p, p);

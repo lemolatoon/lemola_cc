@@ -11,6 +11,7 @@ enum NodeKind {
     ND_SUB,       // -
     ND_MUL,       // *
     ND_DIV,       // /
+    ND_REST,      // %
     ND_ASSIGN,    // =
     ND_IF,        // if
     ND_WHILE,     // while
@@ -18,6 +19,7 @@ enum NodeKind {
     ND_LVAR,      // Local Variable
     ND_NUM,       // Integer
     ND_RETURN,    // return
+    ND_BLOCKSTMT, // { <stmt>* }
 }
 
 #[repr(C)]
@@ -31,6 +33,8 @@ pub struct Node<'a> {
     increment: *const Node<'a>,
     els: *const Node<'a>,
     then: &'a Node<'a>,
+
+    next: *const Node<'a>,
 
     value: c_int,
     offset: c_int,
@@ -68,58 +72,139 @@ impl<'a> Node<'a> {
             None
         }
     }
+
+    fn next(&self) -> Option<&'a Node<'a>> {
+        return unsafe { self.next.as_ref() };
+        // if !self.next.is_null() {
+        //     unsafe { self.next.as_ref() }
+        // } else {
+        //     None
+        // }
+    }
+}
+
+macro_rules! debug_struct_next {
+    ($self:ident, $f:ident, $next:expr) => {
+        match $self.kind {
+            ND_NUM => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("value", &$self.value)
+                .field("next", $next)
+                .finish(),
+            ND_LVAR => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("offset", &$self.offset)
+                .field("next", $next)
+                .finish(),
+            ND_RETURN => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("lhs", &$self.lhs)
+                .field("next", $next)
+                .finish(),
+            ND_IF => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("cond", &$self.cond())
+                .field("then", &$self.then)
+                .field("else", &$self.els())
+                .field("next", $next)
+                .finish(),
+            ND_WHILE => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("cond", &$self.cond())
+                .field("then", &$self.then)
+                .field("next", $next)
+                .finish(),
+            ND_FOR => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("init", &$self.init())
+                .field("cond", &$self.cond())
+                .field("inc", &$self.inc())
+                .field("then", &$self.then)
+                .field("next", $next)
+                .finish(),
+            ND_BLOCKSTMT => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("next", $next)
+                .finish(),
+            _ => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("lhs", &$self.lhs)
+                .field("rhs", &$self.rhs)
+                .field("next", $next)
+                .finish(),
+        }
+    };
+}
+macro_rules! debug_struct_next_none {
+    ($self:ident, $f:ident) => {
+        match $self.kind {
+            ND_NUM => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("value", &$self.value)
+                .finish(),
+            ND_LVAR => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("offset", &$self.offset)
+                .finish(),
+            ND_RETURN => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("lhs", &$self.lhs)
+                .finish(),
+            ND_IF => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("cond", &$self.cond())
+                .field("then", &$self.then)
+                .field("else", &$self.els())
+                .finish(),
+            ND_WHILE => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("cond", &$self.cond())
+                .field("then", &$self.then)
+                .finish(),
+            ND_FOR => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("init", &$self.init())
+                .field("cond", &$self.cond())
+                .field("inc", &$self.inc())
+                .field("then", &$self.then)
+                .finish(),
+            ND_BLOCKSTMT => $f.debug_struct("Node").field("kind", &$self.kind).finish(),
+            _ => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field("lhs", &$self.lhs)
+                .field("rhs", &$self.rhs)
+                .finish(),
+        }
+    };
 }
 
 use std::{
-    fmt::Debug,
+    fmt::{Debug, DebugStruct},
     os::raw::{c_char, c_int},
 };
 impl Debug for Node<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use NodeKind::*;
-        match self.kind {
-            ND_NUM => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("value", &self.value)
-                .finish(),
-            ND_LVAR => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("offset", &self.offset)
-                .finish(),
-            ND_RETURN => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("lhs", &self.lhs)
-                .finish(),
-            ND_IF => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("cond", &self.cond())
-                .field("then", &self.then)
-                .field("else", &self.els())
-                .finish(),
-            ND_WHILE => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("cond", &self.cond())
-                .field("then", &self.then)
-                .finish(),
-            ND_FOR => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("init", &self.init())
-                .field("cond", &self.cond())
-                .field("inc", &self.inc())
-                .field("then", &self.then)
-                .finish(),
-            _ => f
-                .debug_struct("Node")
-                .field("kind", &self.kind)
-                .field("lhs", &self.lhs)
-                .field("rhs", &self.rhs)
-                .finish(),
+        // debug_struct_next!(self, f, &self.next())
+        if let Some(next) = self.next() {
+            debug_struct_next!(self, f, next)
+        } else {
+            debug_struct_next_none!(self, f)
         }
     }
 }

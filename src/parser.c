@@ -146,6 +146,16 @@ Node *parse_stmt() {
     } // else {node->increment = NULL;}
     expect(")");
     node->then = parse_stmt();
+  } else if (consume_op("{")) { // block stmt
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_BLOCKSTMT;
+    Node *linking_node;
+    linking_node = node;
+    while (!consume_op("}")) {
+      linking_node->next = parse_stmt();
+      linking_node = linking_node->next;
+    }
+    return node;
   } else {
     node = parse_expr();
     expect(";");
@@ -235,6 +245,8 @@ static Node *parse_mul() {
       node = new_node(ND_MUL, node, parse_unary());
     } else if (consume_op("/")) {
       node = new_node(ND_DIV, node, parse_unary());
+    } else if (consume_op("%")) {
+      node = new_node(ND_REST, node, parse_unary());
     } else {
       printk("===parse_mul=====\n");
       return node;

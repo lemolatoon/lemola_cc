@@ -67,7 +67,13 @@ assert 55 "abc = 55; return abc; 4 + 4 + 4;"
 assert 3 "a = 1; if (44 > 32) a = 3; if(44 < 32) a = 5; return a;"
 assert 100 "a = 5; if (55 != 43) a = 100; else a = 50; return a;"
 assert 55 "sum = 0; for (i = 1; i <= 10; i = i + 1) sum = sum + i; return sum;"
-echo a
 assert 10 "i = 0; sum = 1; while(i <= 10) sum = 10; return sum;"
+
+assert 1 "6 % 3 == 0;"
+
+# prime
+assert 1 "n = 103; result = 1; for (i = 2; i < 103; i = i + 1) {if (n % i == 0) {result = 0;}} return result;"
+assert 0 "n = 2; result = 1; for (i = 2; i < 103; i = i + 1) {if (n % i == 0) {result = 0;}} return result;"
+assert 0 "n = 81; result = 1; for (i = 2; i < 103; i = i + 1) {if (n % i == 0) {result = 0;}} return result;"
 
 echo OK

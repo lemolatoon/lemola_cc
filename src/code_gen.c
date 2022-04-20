@@ -111,6 +111,17 @@ void generate_assembly(FILE *fp, Node *node) {
     // `a = b` returns b
     fprintf(fp, " push rdi\n");
     return;
+  case ND_BLOCKSTMT:
+    printk("ND_BLOCKSTMT\n");
+    ast_printd(node);
+    Node *watching = node->next;
+    while (watching != NULL) {
+      generate_assembly(fp, watching);
+      fprintf(fp, " pop rax\n");
+      watching = watching->next;
+    }
+    fprintf(fp, " push rax\n");
+    return;
   }
 
   // ----expr----
@@ -161,6 +172,13 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintf(fp, " cqo\n");
     // rax := rax / rdi, rdx := rax % rdi
     fprintf(fp, " idiv rdi\n");
+    break;
+  case ND_REST:
+    // extend rax 64bit register to rdx-rax 128bit register
+    fprintf(fp, " cqo\n");
+    // rax := rax / rdi, rdx := rax % rdi
+    fprintf(fp, " idiv rdi\n");
+    fprintf(fp, " mov rax, rdx\n");
     break;
   default:
     error("Unexpected NodeKind: %d", node->kind);

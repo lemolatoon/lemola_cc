@@ -31,6 +31,7 @@ typedef enum {
   ND_SUB,       // -
   ND_MUL,       // *
   ND_DIV,       // /
+  ND_REST,      // %
   ND_ASSIGN,    // =
   ND_IF,        // if
   ND_WHILE,     // while
@@ -38,6 +39,7 @@ typedef enum {
   ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
   ND_RETURN,    // return
+  ND_BLOCKSTMT, // { <stmt>* }
 } NodeKind;
 
 typedef struct Node Node;
@@ -52,6 +54,8 @@ struct Node {
   Node *increment;      // for
   Node *els;            // else
   Node *then;           // if or while or for
+
+  Node *next; // when(kind == ND_BLOCKSTMT) next := next stmt node
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
