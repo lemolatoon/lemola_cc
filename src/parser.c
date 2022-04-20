@@ -60,29 +60,23 @@ Node *new_node_local_variable(Token *tok) {
   node->kind = ND_LVAR;
 
   LVar *lvar = find_lvar(tok);
-  printk("OK?\n");
   if (lvar != NULL) {
+    printk("THIS LVAR EXISTS\n");
     // Treat node as lvar
     node->offset = lvar->offset;
   } else {
     printk("CREATE NEW LVAR\n");
     // Create new local variable
-    printk("calloc\n");
     lvar = calloc(1, sizeof(LVar));
     // next var of lvar is head of locals
-    printk("lvar->next\n");
     lvar->next = locals;
-    printk("lvar->name\n");
     lvar->name = tok->str;
-    printk("lvar->len\n");
     lvar->len = tok->len;
-    printk("lvar->offset\n");
     if (locals == NULL) {
       lvar->offset = 8;
     } else {
       lvar->offset = locals->offset + 8;
     }
-    printk("node->offset\n");
     node->offset = lvar->offset;
     // set lvar head of locals
     locals = lvar;
@@ -120,7 +114,9 @@ Node *parse_stmt() {
     node->condition = parse_expr();
     expect(")");
     node->then = parse_stmt();
+    token_printd(token);
     if (consume(TK_ELSE)) {
+      token_printd(token);
       printk("ELSE DETECTED\n");
       node->els = parse_stmt();
     }

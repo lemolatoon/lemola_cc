@@ -202,7 +202,7 @@ Token *tokenize(char *p) {
 
     // Identifier or Reserved words
     // possible characters that can be beside indent
-    char *white_ptr = strpbrk(p, " \n\t;)}");
+    char *white_ptr = strpbrk(p, " \n\t;()}");
     int len = white_ptr - p;
     if (len >= 1) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return
@@ -213,6 +213,8 @@ Token *tokenize(char *p) {
         current_token = new_token(TK_WHILE, current_token, p, white_ptr);
       } else if (len == 3 && !strncmp(p, "for", 3)) {
         current_token = new_token(TK_FOR, current_token, p, white_ptr);
+      } else if (len == 4 && !strncmp(p, "else", 4)) {
+        current_token = new_token(TK_ELSE, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);
       }

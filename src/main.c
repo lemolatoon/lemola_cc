@@ -29,7 +29,6 @@ int main(int argc, char **argv) {
 
   printk("=============parse==============\n");
   parse_program();
-  exit(4);
   printk("===========parse end=============\n");
 
   // output starting part of assembly

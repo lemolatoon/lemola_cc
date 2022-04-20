@@ -8,11 +8,15 @@
 #ifdef Debug
 #define printk(...) printf(__VA_ARGS__)
 #define assertd(expr) assert(expr)
+#define fprintfd(fp, str) fprintf(fp, str)
 #else
 #define printk(...)                                                            \
   do {                                                                         \
   } while (0);
 #define assertd(...)                                                           \
+  do {                                                                         \
+  } while (0);
+#define fprintfd(...)                                                          \
   do {                                                                         \
   } while (0);
 #endif
