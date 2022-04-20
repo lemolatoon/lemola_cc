@@ -37,7 +37,7 @@ $(RUSTLIB): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
 	cd for_test && \
 	cargo build && \
 	cd .. && \
-	cp $(RUSTLIB) $(MKFILE_PATH)/dynlib/ 
+	cp $(RUSTLIB) $(MKFILE_PATH)dynlib/ 
 
 a.out: src.s
 	$(CC) src.s $(ASFLAG)

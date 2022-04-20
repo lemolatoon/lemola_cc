@@ -8,11 +8,15 @@
 #ifdef Debug
 #define printk(...) printf(__VA_ARGS__)
 #define assertd(expr) assert(expr)
+#define fprintfd(fp, str) fprintf(fp, str)
 #else
 #define printk(...)                                                            \
   do {                                                                         \
   } while (0);
 #define assertd(...)                                                           \
+  do {                                                                         \
+  } while (0);
+#define fprintfd(...)                                                          \
   do {                                                                         \
   } while (0);
 #endif
@@ -28,6 +32,9 @@ typedef enum {
   ND_MUL,       // *
   ND_DIV,       // /
   ND_ASSIGN,    // =
+  ND_IF,        // if
+  ND_WHILE,     // while
+  ND_FOR,       // for
   ND_LVAR,      // Local Variable
   ND_NUM,       // Integer
   ND_RETURN,    // return
@@ -39,8 +46,15 @@ struct Node {
   NodeKind kind; // type of Node
   Node *lhs;     // left hand side
   Node *rhs;     // right hand side
-  int value;     // when (kind == ND_NUM)
-  int offset;    // when(kind == ND_LVAR): offset of func stack from rbp
+
+  Node *condition;      // if or while or for
+  Node *initialization; // for
+  Node *increment;      // for
+  Node *els;            // else
+  Node *then;           // if or while or for
+
+  int value;  // when (kind == ND_NUM)
+  int offset; // when(kind == ND_LVAR): offset of func stack from rbp
 };
 
 typedef struct LVar LVar;
@@ -76,6 +90,10 @@ typedef enum {
   TK_RESERVED, // operator
   TK_IDENT,    // identifier
   TK_RETURN,   // return
+  TK_IF,       // if
+  TK_WHILE,    // while
+  TK_FOR,      // for
+  TK_ELSE,     // else
   TK_NUM,      // number literal
   TK_EOF,      // End of File
 } TokenKind;
