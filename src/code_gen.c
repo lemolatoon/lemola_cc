@@ -59,6 +59,7 @@ void generate_assembly(FILE *fp, Node *node) {
     // if not satisfy then jmp
     fprintf(fp, " je  .Lend%d\n", local_label);
     generate_assembly(fp, node->then);
+    fprintf(fp, " jmp .Lbegin%d\n", local_label);
     fprintf(fp, ".Lend%d:\n", local_label);
     return;
   case ND_FOR:
