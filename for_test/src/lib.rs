@@ -20,6 +20,7 @@ enum NodeKind {
     ND_NUM,       // Integer
     ND_RETURN,    // return
     ND_BLOCKSTMT, // { <stmt>* }
+    ND_CALLFUNC,  // function call
 }
 
 #[repr(C)]
@@ -35,6 +36,9 @@ pub struct Node<'a> {
     then: &'a Node<'a>,
 
     next: *const Node<'a>,
+
+    name: *const c_char,
+    len: c_int,
 
     value: c_int,
     offset: c_int,
@@ -133,6 +137,22 @@ macro_rules! debug_struct_next {
                 .field("kind", &$self.kind)
                 .field("next", $next)
                 .finish(),
+            ND_CALLFUNC => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field(
+                    "name",
+                    &&unsafe { CStr::from_ptr($self.name) }
+                        .to_str()
+                        .unwrap()
+                        .chars()
+                        .zip(0..)
+                        .filter(|(_, i)| i < &$self.len)
+                        .map(|(c, _)| c)
+                        .collect::<String>(),
+                )
+                .field("next", $next)
+                .finish(),
             _ => $f
                 .debug_struct("Node")
                 .field("kind", &$self.kind)
@@ -183,6 +203,21 @@ macro_rules! debug_struct_next_none {
                 .field("then", &$self.then)
                 .finish(),
             ND_BLOCKSTMT => $f.debug_struct("Node").field("kind", &$self.kind).finish(),
+            ND_CALLFUNC => $f
+                .debug_struct("Node")
+                .field("kind", &$self.kind)
+                .field(
+                    "name",
+                    &&unsafe { CStr::from_ptr($self.name) }
+                        .to_str()
+                        .unwrap()
+                        .chars()
+                        .zip(0..)
+                        .filter(|(_, i)| i < &$self.len)
+                        .map(|(c, _)| c)
+                        .collect::<String>(),
+                )
+                .finish(),
             _ => $f
                 .debug_struct("Node")
                 .field("kind", &$self.kind)
@@ -194,6 +229,7 @@ macro_rules! debug_struct_next_none {
 }
 
 use std::{
+    ffi::CStr,
     fmt::{Debug, DebugStruct},
     os::raw::{c_char, c_int},
 };
@@ -242,7 +278,7 @@ pub struct Token<'a> {
     kind: TokenKind,
     next: &'a Token<'a>,
     value: c_int,
-    str: &'a c_char,
+    str: *const c_char,
     len: c_int,
 }
 
@@ -257,18 +293,30 @@ impl Debug for Token<'_> {
                 .field("value", &self.value)
                 .field(
                     "str",
-                    &char::from_u32(self.str.to_string().parse().unwrap()).unwrap(),
+                    &&unsafe { CStr::from_ptr(self.str) }
+                        .to_str()
+                        .unwrap()
+                        .chars()
+                        .zip(0..)
+                        .filter(|(_, i)| *i < self.len)
+                        .map(|(c, _)| c)
+                        .collect::<String>(),
                 )
-                .field("len", &self.len)
                 .finish(),
             _ => f
                 .debug_struct("Token")
                 .field("kind", &self.kind)
                 .field(
                     "str",
-                    &char::from_u32(self.str.to_string().parse().unwrap()).unwrap(),
+                    &&unsafe { CStr::from_ptr(self.str) }
+                        .to_str()
+                        .unwrap()
+                        .chars()
+                        .zip(0..)
+                        .filter(|(_, i)| *i < self.len)
+                        .map(|(c, _)| c)
+                        .collect::<String>(),
                 )
-                .field("len", &self.len)
                 .finish(),
         }
     }

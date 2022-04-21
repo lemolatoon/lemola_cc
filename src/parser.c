@@ -289,10 +289,18 @@ Node *parse_primary() {
     return node;
   }
 
-  // loop here
   Token *token = consume_ident();
-  Node *node = new_node_local_variable(token);
-  return node;
+  if (consume_op("(")) {
+    expect(")");
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_CALLFUNC;
+    node->name = token->str;
+    node->len = token->len;
+    return node;
+  } else {
+    Node *node = new_node_local_variable(token);
+    return node;
+  }
 }
 // --------------parser----------------
 

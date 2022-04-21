@@ -1,5 +1,6 @@
 # User Defined
 src.c
+link.c
 src.s
 a.out
 lemola_cc

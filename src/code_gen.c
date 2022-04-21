@@ -116,11 +116,22 @@ void generate_assembly(FILE *fp, Node *node) {
     printk("ND_BLOCKSTMT\n");
     ast_printd(node);
     Node *watching = node->next;
+    // generate assembly until statement is null
     while (watching != NULL) {
       generate_assembly(fp, watching);
       fprintf(fp, " pop rax\n");
       watching = watching->next;
     }
+    fprintf(fp, " push rax\n");
+    return;
+  case ND_CALLFUNC:
+    fprintf(fp, " call ");
+    // fprintf name of identifier
+    for (int i = 0; i < node->len; i++) {
+      fprintf(fp, "%c", *(node->name + i));
+    }
+    fprintf(fp, "\n");
+    // push return value
     fprintf(fp, " push rax\n");
     return;
   }

@@ -40,6 +40,7 @@ typedef enum {
   ND_NUM,       // Integer
   ND_RETURN,    // return
   ND_BLOCKSTMT, // { <stmt>* }
+  ND_CALLFUNC,  // function call
 } NodeKind;
 
 typedef struct Node Node;
@@ -56,6 +57,9 @@ struct Node {
   Node *then;           // if or while or for
 
   Node *next; // when(kind == ND_BLOCKSTMT) next := next stmt node
+
+  char *name; // when (kind = ND_CALLFUNC)
+  int len;
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
