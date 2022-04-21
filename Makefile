@@ -23,7 +23,7 @@ ifdef Debug
 	ASFLAG  += -g3
 endif
 
-lemola_cc: $(OBJS) $(RUSTLIB)
+lemola_cc: $(OBJS) $(RUSTLIBPATH)
 	$(CC) $(OBJS)  $(RUSTLIBPATH) -o $@ $(LDFLAGS)
 
 
@@ -33,13 +33,13 @@ $(OBJS): src/lemola_cc.h
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
-$(RUSTLIB): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
+$(RUSTLIBPATH): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
 	cd for_test && \
 	cargo build && \
 	cd .. && \
 	cp $(RUSTLIB) $(MKFILE_PATH)dynlib/ 
 
-a.out: src.s
+a.out: src.s lemola_cc
 	$(CC) src.s $(ASFLAG)
 
 .PHONY: clean
@@ -55,7 +55,7 @@ test: lemola_cc
 rev_asm: a.out
 	objdump -d -M intel a.out | less
 
-run: a.out
+run: a.out 
 	./a.out
 	echo $$?
  
