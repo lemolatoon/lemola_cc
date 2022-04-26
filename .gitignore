@@ -4,6 +4,7 @@ link.c
 src.s
 a.out
 lemola_cc
+tmp.c
 
 # under test/
 test/tmp

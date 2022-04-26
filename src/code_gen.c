@@ -20,6 +20,7 @@ static int label_index = 0;
 void generate_assembly(FILE *fp, Node *node) {
   int local_label = label_index;
   label_index++;
+  // if node->kind is reserved word kind then generate and return
   switch (node->kind) {
   case ND_RETURN:
     fprintfd(fp, "# return\n");
@@ -65,12 +66,14 @@ void generate_assembly(FILE *fp, Node *node) {
   case ND_FOR:
     fprintfd(fp, "# for\n");
     if (node->initialization != NULL) {
+      // generate init expr of for stmt
       fprintfd(fp, "# init\n");
       generate_assembly(fp, node->initialization);
       fprintfd(fp, "# init end\n");
     }
     fprintf(fp, ".Lbegin%d:\n", local_label);
     if (node->condition != NULL) {
+      // generate condition expr of for stmt
       fprintfd(fp, "# condition\n");
       generate_assembly(fp, node->condition);
       fprintfd(fp, "# condition end\n");
@@ -83,9 +86,12 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintfd(fp, "# then\n");
     generate_assembly(fp, node->then);
     fprintfd(fp, "# then end\n");
-    fprintfd(fp, "# increment\n");
-    generate_assembly(fp, node->increment);
-    fprintfd(fp, "# condition end\n");
+    if (node->increment != NULL) {
+      fprintfd(fp, "# increment\n");
+      // generate increment expr of for stmt
+      generate_assembly(fp, node->increment);
+      fprintfd(fp, "# increment end\n");
+    }
     fprintf(fp, " jmp .Lbegin%d\n", local_label);
     fprintf(fp, ".Lend%d:\n", local_label);
     fprintfd(fp, "# for end\n");
