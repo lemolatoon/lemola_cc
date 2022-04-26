@@ -103,6 +103,8 @@ assert 102 "
 
 assert 55 "sum = 0; i = 1; while(i <= 10) {sum = sum + i; i = i + 1;} return sum;"
 assert 5 "a = five(); return a;"
+assert 19 "a = add(five(), 9 + 5); return a;"
+assert 21 "return sum(1, 2, 3, 4, 5, 6);"
 
 
 call "print_ok(); return 0;"

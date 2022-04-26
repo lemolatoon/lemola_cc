@@ -39,6 +39,7 @@ pub struct Node<'a> {
 
     name: *const c_char,
     len: c_int,
+    arg_count: c_int,
 
     value: c_int,
     offset: c_int,
@@ -151,6 +152,7 @@ macro_rules! debug_struct_next {
                         .map(|(c, _)| c)
                         .collect::<String>(),
                 )
+                .field("arg_count", &$self.arg_count)
                 .field("next", $next)
                 .finish(),
             _ => $f
@@ -217,6 +219,7 @@ macro_rules! debug_struct_next_none {
                         .map(|(c, _)| c)
                         .collect::<String>(),
                 )
+                .field("arg_count", &$self.arg_count)
                 .finish(),
             _ => $f
                 .debug_struct("Node")

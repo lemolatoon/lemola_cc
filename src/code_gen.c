@@ -118,7 +118,7 @@ void generate_assembly(FILE *fp, Node *node) {
     // `a = b` returns b
     fprintf(fp, " push rdi\n");
     return;
-  case ND_BLOCKSTMT:
+  case ND_BLOCKSTMT: {
     printk("ND_BLOCKSTMT\n");
     ast_printd(node);
     Node *watching = node->next;
@@ -130,7 +130,17 @@ void generate_assembly(FILE *fp, Node *node) {
     }
     fprintf(fp, " push rax\n");
     return;
-  case ND_CALLFUNC:
+  }
+  case ND_CALLFUNC: {
+    // set arguments
+    char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    Node *watching = node->next;
+    for (int i = 0; i < node->arg_count; i++) {
+      assertd(watching != NULL);
+      generate_assembly(fp, watching);
+      fprintf(fp, " pop %s\n", arg_reg[i]);
+      watching = watching->next;
+    }
     fprintf(fp, " call ");
     // fprintf name of identifier
     for (int i = 0; i < node->len; i++) {
@@ -140,6 +150,7 @@ void generate_assembly(FILE *fp, Node *node) {
     // push return value
     fprintf(fp, " push rax\n");
     return;
+  }
   }
 
   // ----expr----

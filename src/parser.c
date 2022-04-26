@@ -311,11 +311,33 @@ Node *parse_primary() {
   // <ident> ("(" ")")?
   Token *token = consume_ident();
   if (consume_op("(")) {
-    expect(")");
+    // function call
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_CALLFUNC;
     node->name = token->str;
     node->len = token->len;
+    int arg_count = 0;
+    if (!consume_op(")")) {
+      // <expr> ("," <expr>)*
+      node->next = parse_expr();
+      arg_count++;
+      Node *tail = node->next;
+      while (consume_op(",")) {
+        arg_count++;
+        tail->next = parse_expr();
+        tail = tail->next;
+      }
+      expect(")");
+      if (arg_count > 6) {
+        node->arg_count = arg_count;
+        ast_printd(node);
+        printf("In order to see constructed AST, enable RustDebug, which needs "
+               "definition of RUSTD\n");
+        printf("currently more than 6 function arguments is not supported\n");
+        exit(0);
+      }
+    }
+    node->arg_count = arg_count;
     return node;
   } else {
     Node *node = new_node_local_variable(token);

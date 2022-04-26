@@ -56,10 +56,20 @@ struct Node {
   Node *els;            // else
   Node *then;           // if or while or for
 
-  Node *next; // when(kind == ND_BLOCKSTMT) next := next stmt node
+  // when(kind == ND_BLOCKSTMT) next := next stmt node (<stmt>)
+  // when(kind == Any && parsing block stmt) next := next_statement
+  // when(kind == ND_CALLFUNC) next := first arg(<expr>)
+  // when(kind == Any && parsing func argument) next := next_argument
+  Node *next;
 
-  char *name; // when (kind = ND_CALLFUNC)
+  char *name; // when (kind == ND_CALLFUNC)
+
+  // when (kind == ND_CALLFUNC) len := length of len
   int len;
+
+  // when (kind == ND_CALLFUNC)
+  //      arg_count := count of function argument
+  int arg_count;
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
