@@ -2,15 +2,21 @@
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 cd $SCRIPT_DIR
 
+call() {
+    input="$1"
+
+    echo "$input" > tmp.c
+    ../lemola_cc tmp.c
+    
+    clang -o tmp src.s linking.c
+    ./tmp
+}
+
 assert() {
     expected="$1"
     input="$2"
 
-    echo "$input" > tmp.c
-    ../lemola_cc tmp.c
-
-    clang -o tmp src.s 
-    ./tmp
+    call "$input"
     actual="$?"
 
 
@@ -96,6 +102,9 @@ assert 102 "
     return sum % 256;"
 
 assert 55 "sum = 0; i = 1; while(i <= 10) {sum = sum + i; i = i + 1;} return sum;"
+assert 5 "a = five(); return a;"
+assert 19 "a = add(five(), 9 + 5); return a;"
+assert 21 "return sum(1, 2, 3, 4, 5, 6);"
 
 
-echo OK
+call "print_ok(); return 0;"

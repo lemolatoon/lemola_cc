@@ -20,6 +20,7 @@ static int label_index = 0;
 void generate_assembly(FILE *fp, Node *node) {
   int local_label = label_index;
   label_index++;
+  // if node->kind is reserved word kind then generate and return
   switch (node->kind) {
   case ND_RETURN:
     fprintfd(fp, "# return\n");
@@ -65,12 +66,14 @@ void generate_assembly(FILE *fp, Node *node) {
   case ND_FOR:
     fprintfd(fp, "# for\n");
     if (node->initialization != NULL) {
+      // generate init expr of for stmt
       fprintfd(fp, "# init\n");
       generate_assembly(fp, node->initialization);
       fprintfd(fp, "# init end\n");
     }
     fprintf(fp, ".Lbegin%d:\n", local_label);
     if (node->condition != NULL) {
+      // generate condition expr of for stmt
       fprintfd(fp, "# condition\n");
       generate_assembly(fp, node->condition);
       fprintfd(fp, "# condition end\n");
@@ -83,9 +86,12 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintfd(fp, "# then\n");
     generate_assembly(fp, node->then);
     fprintfd(fp, "# then end\n");
-    fprintfd(fp, "# increment\n");
-    generate_assembly(fp, node->increment);
-    fprintfd(fp, "# condition end\n");
+    if (node->increment != NULL) {
+      fprintfd(fp, "# increment\n");
+      // generate increment expr of for stmt
+      generate_assembly(fp, node->increment);
+      fprintfd(fp, "# increment end\n");
+    }
     fprintf(fp, " jmp .Lbegin%d\n", local_label);
     fprintf(fp, ".Lend%d:\n", local_label);
     fprintfd(fp, "# for end\n");
@@ -112,10 +118,11 @@ void generate_assembly(FILE *fp, Node *node) {
     // `a = b` returns b
     fprintf(fp, " push rdi\n");
     return;
-  case ND_BLOCKSTMT:
+  case ND_BLOCKSTMT: {
     printk("ND_BLOCKSTMT\n");
     ast_printd(node);
     Node *watching = node->next;
+    // generate assembly until statement is null
     while (watching != NULL) {
       generate_assembly(fp, watching);
       fprintf(fp, " pop rax\n");
@@ -123,6 +130,27 @@ void generate_assembly(FILE *fp, Node *node) {
     }
     fprintf(fp, " push rax\n");
     return;
+  }
+  case ND_CALLFUNC: {
+    // set arguments
+    char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    Node *watching = node->next;
+    for (int i = 0; i < node->arg_count; i++) {
+      assertd(watching != NULL);
+      generate_assembly(fp, watching);
+      fprintf(fp, " pop %s\n", arg_reg[i]);
+      watching = watching->next;
+    }
+    fprintf(fp, " call ");
+    // fprintf name of identifier
+    for (int i = 0; i < node->len; i++) {
+      fprintf(fp, "%c", *(node->name + i));
+    }
+    fprintf(fp, "\n");
+    // push return value
+    fprintf(fp, " push rax\n");
+    return;
+  }
   }
 
   // ----expr----

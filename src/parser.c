@@ -92,6 +92,7 @@ Node *code[100];
 
 void parse_program() {
   int i = 0;
+  // <stmt>*
   while (!at_eof()) {
     code[i] = parse_stmt();
     i++;
@@ -103,11 +104,13 @@ Node *parse_stmt() {
   printk("===parse_stmt===\n");
   Node *node;
   if (consume(TK_RETURN)) {
+    // "return" <expr> ";"
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = parse_expr();
     expect(";");
   } else if (consume(TK_IF)) {
+    // "if" "(" <expr> ")" <stmt> ("else" <stmt>)?
     node = calloc(1, sizeof(Node));
     node->kind = ND_IF;
     expect("(");
@@ -116,11 +119,13 @@ Node *parse_stmt() {
     node->then = parse_stmt();
     token_printd(token);
     if (consume(TK_ELSE)) {
+      // "else" <stmt>
       token_printd(token);
       printk("ELSE DETECTED\n");
       node->els = parse_stmt();
     }
   } else if (consume(TK_WHILE)) {
+    // "while" "(" <expr> ")" <stmt>
     node = calloc(1, sizeof(Node));
     node->kind = ND_WHILE;
     expect("(");
@@ -128,6 +133,7 @@ Node *parse_stmt() {
     expect(")");
     node->then = parse_stmt();
   } else if (consume(TK_FOR)) {
+    // "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
     node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
     expect("(");
@@ -141,12 +147,13 @@ Node *parse_stmt() {
       expect(";");
     } // else {node->condition = NULL;}
 
-    if (!consume_op(";")) { // if increment expr exsits
+    if (!consume_op(")")) { // if increment expr exsits
       node->increment = parse_expr();
+      expect(")");
     } // else {node->increment = NULL;}
-    expect(")");
     node->then = parse_stmt();
   } else if (consume_op("{")) { // block stmt
+    // "{" <stmt>* "}"
     node = calloc(1, sizeof(Node));
     node->kind = ND_BLOCKSTMT;
     Node *linking_node;
@@ -157,6 +164,7 @@ Node *parse_stmt() {
     }
     return node;
   } else {
+    // <expr> ";"
     node = parse_expr();
     expect(";");
   }
@@ -167,6 +175,7 @@ Node *parse_stmt() {
 }
 
 Node *parse_expr() {
+  // <assign>
   printk("===parse_expr===\n");
   Node *node = parse_assign();
   printk("==parse_expr=====\n");
@@ -174,9 +183,11 @@ Node *parse_expr() {
 }
 
 Node *parse_assign() {
+  // <equality> ("=" <assign>)?
   printk("===parse_assign===\n");
   Node *node = parse_equality();
   if (consume_op("=")) {
+    // "=" <assign>
     node = new_node(ND_ASSIGN, node, parse_assign());
     printk("===parse_assign===\n");
     return node;
@@ -187,6 +198,7 @@ Node *parse_assign() {
 }
 
 static Node *parse_equality() {
+  // <relational> ("==" <relational> | "!=" <relational>)*
   printk("===parse_eq===\n");
   Node *node = parse_relational();
   for (;;) {
@@ -202,6 +214,7 @@ static Node *parse_equality() {
 }
 
 static Node *parse_relational() {
+  // <add> ("<" <add> | "<=" <add> | ">" <add> | ">=" <add>)*
   printk("===parse_relational===\n");
   Node *node = parse_add();
   for (;;) {
@@ -223,6 +236,7 @@ static Node *parse_relational() {
 }
 
 static Node *parse_add() {
+  //  <mul> ("+" <mul> | "-" <mul>)*
   printk("===parse_add===\n");
   Node *node = parse_mul();
   for (;;) {
@@ -238,6 +252,7 @@ static Node *parse_add() {
 }
 
 static Node *parse_mul() {
+  // <unary> ("*" <unary> | "/" <unary> | "%" <unary>)*
   printk("===parse_mul===\n");
   Node *node = parse_unary();
   for (;;) {
@@ -255,6 +270,7 @@ static Node *parse_mul() {
 }
 
 static Node *parse_unary() {
+  // ("+" | "-")? primary
   printk("===parse_unary===\n");
   if (consume_op("+")) {
     // `+a` is same as just `a`
@@ -275,6 +291,8 @@ static Node *parse_unary() {
 
 Node *parse_primary() {
   printk("===parse_primary===\n");
+  // "(" <expr> ")"
+  token_printd(token);
   if (consume_op("(")) {
     Node *node = parse_expr();
     expect(")");
@@ -283,16 +301,48 @@ Node *parse_primary() {
     return node;
   }
 
+  // <num>
   if (peek_number()) {
     Node *node = new_node_num(expect_number());
     printk("===parse_primary=====\n");
     return node;
   }
 
-  // loop here
+  // <ident> ("(" ")")?
   Token *token = consume_ident();
-  Node *node = new_node_local_variable(token);
-  return node;
+  if (consume_op("(")) {
+    // function call
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_CALLFUNC;
+    node->name = token->str;
+    node->len = token->len;
+    int arg_count = 0;
+    if (!consume_op(")")) {
+      // <expr> ("," <expr>)*
+      node->next = parse_expr();
+      arg_count++;
+      Node *tail = node->next;
+      while (consume_op(",")) {
+        arg_count++;
+        tail->next = parse_expr();
+        tail = tail->next;
+      }
+      expect(")");
+      if (arg_count > 6) {
+        node->arg_count = arg_count;
+        ast_printd(node);
+        printf("In order to see constructed AST, enable RustDebug, which needs "
+               "definition of RUSTD\n");
+        printf("currently more than 6 function arguments is not supported\n");
+        exit(0);
+      }
+    }
+    node->arg_count = arg_count;
+    return node;
+  } else {
+    Node *node = new_node_local_variable(token);
+    return node;
+  }
 }
 // --------------parser----------------
 

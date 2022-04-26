@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
   // prologue
   fprintf(target_pointer, " push rbp\n");
   fprintf(target_pointer, " mov rbp, rsp\n");
+  // reserve 26 local variables in advance
   fprintf(target_pointer, " sub rsp, %d\n", 8 * 26);
 
   for (int i = 0; code[i] != NULL; i++) {

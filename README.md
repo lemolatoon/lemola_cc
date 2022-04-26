@@ -14,9 +14,11 @@ inspired by https://www.sigbus.info/compilerbook
 # appendix
 ## x86_64 ABI
 
-| Arch/ABI | arg1 | arg2 | arg3 | arg4 | arg5 | arg6 | arg7 | Notes |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| x86-64 | rdi | rsi | rdx | r10 | r8 | r9 | \- |   |
+| Arch/ABI | arg1  | arg2  | arg3  | arg4  | arg5  | arg6  | arg7  | Notes |
+| :------: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|  x86-64  |  rdi  |  rsi  |  rdx  |  rcx  |  r8   |  r9   |  \-   |       |
+
+Note: in syscall, instead of rcx, r10 is used
 
 
 from man page<br>

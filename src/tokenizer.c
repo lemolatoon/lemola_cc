@@ -138,7 +138,7 @@ static bool starts_with(char *p, char *q) {
 static bool is_punctuator(char *p) {
   if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
       *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' ||
-      *p == '{' || *p == '}' || *p == '%') {
+      *p == '{' || *p == '}' || *p == '%' || *p == ',') {
     return true;
   } else {
     return false;
