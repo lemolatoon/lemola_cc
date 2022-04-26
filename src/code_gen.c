@@ -37,9 +37,11 @@ void generate_assembly(FILE *fp, Node *node) {
   case ND_IF:
     // cmp result must be in top of stack
     fprintfd(fp, "# if\n");
+    fprintfd(fp, "# condition\n");
     generate_assembly(fp, node->condition);
     fprintf(fp, " pop rax\n");
     fprintf(fp, " cmp rax, 0\n");
+    fprintfd(fp, "# condition end\n");
     // if comparation == 0 then jump
     // if node->els == NULL then `.Lelse` means `.Lend`
     fprintf(fp, " je  .Lelse%d\n", local_label);
@@ -47,7 +49,9 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintf(fp, "jmp  .Lend%d\n", local_label);
     fprintf(fp, ".Lelse%d:\n", local_label);
     if (node->els != NULL) {
+      fprintfd(fp, "# else\n");
       generate_assembly(fp, node->els);
+      fprintfd(fp, "# else end\n");
     }
     fprintf(fp, ".Lend%d:\n", local_label);
     fprintfd(fp, "# if end\n");
@@ -133,6 +137,22 @@ void generate_assembly(FILE *fp, Node *node) {
   }
   case ND_CALLFUNC: {
     // set arguments
+    // align `rsp` to 16
+    fprintf(fp, " mov rax, rsp\n");
+    fprintf(fp, " mov rdi, 16\n");
+    fprintf(fp, " cqo\n");
+    fprintf(fp, " idiv rdi\n");   // rax / rdi
+    fprintf(fp, " cmp rdx, 0\n"); // if rsp % 16 == 0
+    fprintf(fp, " jne .Lrsp_align_else%d\n", local_label);
+    fprintf(fp, ".Lrsp_align%d:\n", local_label);
+    fprintf(fp, " push r15\n");   // align
+    fprintf(fp, " mov r15, 1\n"); // r15 is callee saved reg
+    fprintf(fp, " jmp .Lrsp_align_end%d\n", local_label);
+    fprintf(fp, ".Lrsp_align_else%d:\n", local_label);
+    fprintf(fp, " mov r15, 0\n");
+    fprintf(fp, ".Lrsp_align_end%d:\n", local_label);
+    // r15 == 1 -> pushed one value
+
     char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
     Node *watching = node->next;
     for (int i = 0; i < node->arg_count; i++) {
@@ -147,6 +167,13 @@ void generate_assembly(FILE *fp, Node *node) {
       fprintf(fp, "%c", *(node->name + i));
     }
     fprintf(fp, "\n");
+
+    // check one value was pushed for align rsp
+    // TODO: r15 is not saved if rsp % 16 == 0
+    fprintf(fp, " cmp r15, 0\n");
+    fprintf(fp, " je .Lprocess_after_align%d\n", local_label);
+    fprintf(fp, " pop r15\n");
+    fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
     // push return value
     fprintf(fp, " push rax\n");
     return;
