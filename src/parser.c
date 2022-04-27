@@ -319,13 +319,15 @@ Node *parse_primary() {
     int arg_count = 0;
     if (!consume_op(")")) {
       // <expr> ("," <expr>)*
-      node->next = parse_expr();
+      node->first_arg = parse_expr();
+      ast_printd(node);
       arg_count++;
-      Node *tail = node->next;
+      Node *tail = node->first_arg;
       while (consume_op(",")) {
         arg_count++;
         tail->next = parse_expr();
         tail = tail->next;
+        ast_printd(node);
       }
       expect(")");
       if (arg_count > 6) {

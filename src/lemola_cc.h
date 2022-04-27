@@ -58,9 +58,11 @@ struct Node {
 
   // when(kind == ND_BLOCKSTMT) next := next stmt node (<stmt>)
   // when(kind == Any && parsing block stmt) next := next_statement
-  // when(kind == ND_CALLFUNC) next := first arg(<expr>)
   // when(kind == Any && parsing func argument) next := next_argument
   Node *next;
+
+  // when(kind == ND_CALLFUNC) next := first arg(<expr>)
+  Node *first_arg;
 
   char *name; // when (kind == ND_CALLFUNC)
 

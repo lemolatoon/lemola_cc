@@ -15,7 +15,6 @@ static void generate_left_value(FILE *fp, Node *node) {
 }
 
 static int label_index = 0;
-
 // generate stack-like operator asm
 void generate_assembly(FILE *fp, Node *node) {
   int local_label = label_index;
@@ -154,12 +153,20 @@ void generate_assembly(FILE *fp, Node *node) {
     // r15 == 1 -> pushed one value
 
     char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    Node *watching = node->next;
+    Node *watching = node->first_arg;
+    printk("func name: %s\n", node->name);
+    printk("func arg_count: %d\n", node->arg_count);
+    ast_printd(node);
     for (int i = 0; i < node->arg_count; i++) {
+      printk("In for\n");
+      ast_printd(node);
       assertd(watching != NULL);
       generate_assembly(fp, watching);
-      fprintf(fp, " pop %s\n", arg_reg[i]);
       watching = watching->next;
+    }
+    for (int i = 0; i < node->arg_count; i++) {
+      // pop args
+      fprintf(fp, " pop %s\n", arg_reg[i]);
     }
     fprintf(fp, " call ");
     // fprintf name of identifier

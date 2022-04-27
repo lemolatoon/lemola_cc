@@ -105,6 +105,8 @@ assert 55 "sum = 0; i = 1; while(i <= 10) {sum = sum + i; i = i + 1;} return sum
 assert 5 "a = five(); return a;"
 assert 19 "a = add(five(), 9 + 5); return a;"
 assert 21 "return sum(1, 2, 3, 4, 5, 6);"
+assert 19 "return test();"
+assert 19 "return sum(sum(five(), five(), 0, 0, 0, 0), five(), 1, 1, 1, 1);"
 
 
 call "print_ok(); return 0;"

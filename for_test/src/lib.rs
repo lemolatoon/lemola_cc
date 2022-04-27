@@ -37,6 +37,8 @@ pub struct Node<'a> {
 
     next: *const Node<'a>,
 
+    first_arg: *const Node<'a>,
+
     name: *const c_char,
     len: c_int,
     arg_count: c_int,
@@ -153,7 +155,7 @@ macro_rules! debug_struct_next {
                         .collect::<String>(),
                 )
                 .field("arg_count", &$self.arg_count)
-                .field("next", $next)
+                .field("first_arg", unsafe { &$self.first_arg.as_ref() })
                 .finish(),
             _ => $f
                 .debug_struct("Node")
@@ -220,6 +222,7 @@ macro_rules! debug_struct_next_none {
                         .collect::<String>(),
                 )
                 .field("arg_count", &$self.arg_count)
+                .field("first_arg", unsafe { &$self.first_arg.as_ref() })
                 .finish(),
             _ => $f
                 .debug_struct("Node")
