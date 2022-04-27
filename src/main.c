@@ -34,28 +34,19 @@ int main(int argc, char **argv) {
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
   fprintf(target_pointer, ".global main\n");
-  fprintf(target_pointer, "main:\n");
 
   printk("===========code_gen================\n");
-  // prologue
-  fprintf(target_pointer, " push rbp\n");
-  fprintf(target_pointer, " mov rbp, rsp\n");
-  // reserve 26 local variables in advance
-  fprintf(target_pointer, " sub rsp, %d\n", 8 * 26);
 
+  assertd(code[0] != NULL);
   for (int i = 0; code[i] != NULL; i++) {
     ast_printd(code[i]);
     generate_assembly(target_pointer, code[i]);
+
     // pop result of evaluation of the last expression
     fprintf(target_pointer, " pop rax\n");
   }
   // generate assembly while getting down AST(Abstract Syntax Tree)
   printk("===========code_gen end=============\n");
 
-  // revert stack pointer (rsp)
-  fprintf(target_pointer, " mov rsp, rbp\n");
-  // revert base pointer (rbp)
-  fprintf(target_pointer, " pop rbp\n");
-  fprintf(target_pointer, " ret\n");
   return 0;
 }

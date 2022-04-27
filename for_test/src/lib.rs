@@ -21,6 +21,7 @@ enum NodeKind {
     ND_RETURN,    // return
     ND_BLOCKSTMT, // { <stmt>* }
     ND_CALLFUNC,  // function call
+    ND_FUNCDEF,   // definition of function
 }
 
 #[repr(C)]
@@ -81,6 +82,10 @@ impl<'a> Node<'a> {
     }
 
     fn next(&self) -> Option<&'a Node<'a>> {
+        assert!(!(self as *const Node).is_null());
+        // if !(self as *const Node).is_null() {
+        //     return None;
+        // }
         return unsafe { self.next.as_ref() };
         // if !self.next.is_null() {
         //     unsafe { self.next.as_ref() }
@@ -91,162 +96,196 @@ impl<'a> Node<'a> {
 }
 
 macro_rules! debug_struct_next {
-    ($self:ident, $f:ident, $next:expr) => {
-        match $self.kind {
-            ND_NUM => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("value", &$self.value)
-                .field("next", $next)
-                .finish(),
-            ND_LVAR => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("offset", &$self.offset)
-                .field("next", $next)
-                .finish(),
-            ND_RETURN => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("lhs", &$self.lhs)
-                .field("next", $next)
-                .finish(),
-            ND_IF => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("cond", &$self.cond())
-                .field("then", &$self.then)
-                .field("else", &$self.els())
-                .field("next", $next)
-                .finish(),
-            ND_WHILE => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("cond", &$self.cond())
-                .field("then", &$self.then)
-                .field("next", $next)
-                .finish(),
-            ND_FOR => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("init", &$self.init())
-                .field("cond", &$self.cond())
-                .field("inc", &$self.inc())
-                .field("then", &$self.then)
-                .field("next", $next)
-                .finish(),
-            ND_BLOCKSTMT => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("next", $next)
-                .finish(),
-            ND_CALLFUNC => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field(
-                    "name",
-                    &&unsafe { CStr::from_ptr($self.name) }
-                        .to_str()
-                        .unwrap()
-                        .chars()
-                        .zip(0..)
-                        .filter(|(_, i)| i < &$self.len)
-                        .map(|(c, _)| c)
-                        .collect::<String>(),
-                )
-                .field("arg_count", &$self.arg_count)
-                .field("first_arg", unsafe { &$self.first_arg.as_ref() })
-                .finish(),
-            _ => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("lhs", &$self.lhs)
-                .field("rhs", &$self.rhs)
-                .field("next", $next)
-                .finish(),
-        }
-    };
+    ($self:ident, $f:ident, $next:expr) => {};
 }
 macro_rules! debug_struct_next_none {
-    ($self:ident, $f:ident) => {
-        match $self.kind {
-            ND_NUM => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("value", &$self.value)
-                .finish(),
-            ND_LVAR => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("offset", &$self.offset)
-                .finish(),
-            ND_RETURN => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("lhs", &$self.lhs)
-                .finish(),
-            ND_IF => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("cond", &$self.cond())
-                .field("then", &$self.then)
-                .field("else", &$self.els())
-                .finish(),
-            ND_WHILE => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("cond", &$self.cond())
-                .field("then", &$self.then)
-                .finish(),
-            ND_FOR => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("init", &$self.init())
-                .field("cond", &$self.cond())
-                .field("inc", &$self.inc())
-                .field("then", &$self.then)
-                .finish(),
-            ND_BLOCKSTMT => $f.debug_struct("Node").field("kind", &$self.kind).finish(),
-            ND_CALLFUNC => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field(
-                    "name",
-                    &&unsafe { CStr::from_ptr($self.name) }
-                        .to_str()
-                        .unwrap()
-                        .chars()
-                        .zip(0..)
-                        .filter(|(_, i)| i < &$self.len)
-                        .map(|(c, _)| c)
-                        .collect::<String>(),
-                )
-                .field("arg_count", &$self.arg_count)
-                .field("first_arg", unsafe { &$self.first_arg.as_ref() })
-                .finish(),
-            _ => $f
-                .debug_struct("Node")
-                .field("kind", &$self.kind)
-                .field("lhs", &$self.lhs)
-                .field("rhs", &$self.rhs)
-                .finish(),
-        }
-    };
+    ($self:ident, $f:ident) => {};
 }
 
 use std::{
+    arch::asm,
     ffi::CStr,
-    fmt::{Debug, DebugStruct},
+    fmt::{Debug, DebugStruct, Formatter},
     os::raw::{c_char, c_int},
 };
 impl Debug for Node<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use NodeKind::*;
         // debug_struct_next!(self, f, &self.next())
+        assert!(!(self as *const Node).is_null());
         if let Some(next) = self.next() {
-            debug_struct_next!(self, f, next)
+            match self.kind {
+                ND_NUM => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("value", &self.value)
+                    .field("next", next)
+                    .finish(),
+                ND_LVAR => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("offset", &self.offset)
+                    .field("next", next)
+                    .finish(),
+                ND_RETURN => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("next", next)
+                    .finish(),
+                ND_IF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("cond", &self.cond())
+                    .field("then", &self.then)
+                    .field("else", &self.els())
+                    .field("next", next)
+                    .finish(),
+                ND_WHILE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("cond", &self.cond())
+                    .field("then", &self.then)
+                    .field("next", next)
+                    .finish(),
+                ND_FOR => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("init", &self.init())
+                    .field("cond", &self.cond())
+                    .field("inc", &self.inc())
+                    .field("then", &self.then)
+                    .field("next", next)
+                    .finish(),
+                ND_BLOCKSTMT => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("next", next)
+                    .finish(),
+                ND_CALLFUNC => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field(
+                        "name",
+                        &&unsafe { CStr::from_ptr(self.name) }
+                            .to_str()
+                            .unwrap()
+                            .chars()
+                            .zip(0..)
+                            .filter(|(_, i)| i < &self.len)
+                            .map(|(c, _)| c)
+                            .collect::<String>(),
+                    )
+                    .field("arg_count", &self.arg_count)
+                    .field("first_arg", unsafe { &self.first_arg.as_ref() })
+                    .finish(),
+                ND_FUNCDEF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field(
+                        "name",
+                        &&unsafe { CStr::from_ptr(self.name) }
+                            .to_str()
+                            .unwrap()
+                            .chars()
+                            .zip(0..)
+                            .filter(|(_, i)| i < &self.len)
+                            .map(|(c, _)| c)
+                            .collect::<String>(),
+                    )
+                    .field("arg_count", &self.arg_count)
+                    .field("first_arg", unsafe { &self.first_arg.as_ref() })
+                    .field("then", &self.then)
+                    .finish(),
+                _ => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", &self.rhs)
+                    .field("next", next)
+                    .finish(),
+            }
         } else {
-            debug_struct_next_none!(self, f)
+            match self.kind {
+                ND_NUM => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("value", &self.value)
+                    .finish(),
+                ND_LVAR => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("offset", &self.offset)
+                    .finish(),
+                ND_RETURN => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .finish(),
+                ND_IF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("cond", &self.cond())
+                    .field("then", &self.then)
+                    .field("else", &self.els())
+                    .finish(),
+                ND_WHILE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("cond", &self.cond())
+                    .field("then", &self.then)
+                    .finish(),
+                ND_FOR => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("init", &self.init())
+                    .field("cond", &self.cond())
+                    .field("inc", &self.inc())
+                    .field("then", &self.then)
+                    .finish(),
+                ND_BLOCKSTMT => f.debug_struct("Node").field("kind", &self.kind).finish(),
+                ND_CALLFUNC => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field(
+                        "name",
+                        &&unsafe { CStr::from_ptr(self.name) }
+                            .to_str()
+                            .unwrap()
+                            .chars()
+                            .zip(0..)
+                            .filter(|(_, i)| i < &self.len)
+                            .map(|(c, _)| c)
+                            .collect::<String>(),
+                    )
+                    .field("arg_count", &self.arg_count)
+                    .field("first_arg", unsafe { &self.first_arg.as_ref() })
+                    .finish(),
+                ND_FUNCDEF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field(
+                        "name",
+                        &&unsafe { CStr::from_ptr(self.name) }
+                            .to_str()
+                            .unwrap()
+                            .chars()
+                            .zip(0..)
+                            .filter(|(_, i)| i < &self.len)
+                            .map(|(c, _)| c)
+                            .collect::<String>(),
+                    )
+                    .field("arg_count", &self.arg_count)
+                    .field("first_arg", unsafe { &self.first_arg.as_ref() })
+                    .field("then", &self.then)
+                    .finish(),
+                _ => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", &self.rhs)
+                    .finish(),
+            }
         }
     }
 }

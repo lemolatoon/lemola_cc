@@ -1,8 +1,20 @@
 #include "lemola_cc.h"
 #include <stdio.h>
 
+char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+static void generate_expr(FILE *fp, Node *node);
+static void generate_call_func(FILE *fp, Node *node, int local_label);
+
+static void dynprint(FILE *fp, char *head, int len) {
+  for (int i = 0; i < len; i++) {
+    fprintf(fp, "%c", *(head + i));
+  }
+}
+
 // Calculate address of left value and push it
 static void generate_left_value(FILE *fp, Node *node) {
+  fprintfd(fp, "# gen lvar's addr\n");
   if (node->kind != ND_LVAR) {
     error("left value of assigning is not variable");
   }
@@ -12,6 +24,7 @@ static void generate_left_value(FILE *fp, Node *node) {
   // rax = rbp - offset ; address calculation
   fprintf(fp, " sub rax, %d\n", node->offset);
   fprintf(fp, " push rax\n");
+  fprintfd(fp, "# gen lvar's addr end\n");
 }
 
 static int label_index = 0;
@@ -135,59 +148,103 @@ void generate_assembly(FILE *fp, Node *node) {
     return;
   }
   case ND_CALLFUNC: {
-    // set arguments
-    // align `rsp` to 16
-    fprintf(fp, " mov rax, rsp\n");
-    fprintf(fp, " mov rdi, 16\n");
-    fprintf(fp, " cqo\n");
-    fprintf(fp, " idiv rdi\n");   // rax / rdi
-    fprintf(fp, " cmp rdx, 0\n"); // if rsp % 16 == 0
-    fprintf(fp, " jne .Lrsp_align_else%d\n", local_label);
-    fprintf(fp, ".Lrsp_align%d:\n", local_label);
-    fprintf(fp, " push r15\n");   // align
-    fprintf(fp, " mov r15, 1\n"); // r15 is callee saved reg
-    fprintf(fp, " jmp .Lrsp_align_end%d\n", local_label);
-    fprintf(fp, ".Lrsp_align_else%d:\n", local_label);
-    fprintf(fp, " mov r15, 0\n");
-    fprintf(fp, ".Lrsp_align_end%d:\n", local_label);
-    // r15 == 1 -> pushed one value
-
-    char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    Node *watching = node->first_arg;
-    printk("func name: %s\n", node->name);
-    printk("func arg_count: %d\n", node->arg_count);
-    ast_printd(node);
-    for (int i = 0; i < node->arg_count; i++) {
-      printk("In for\n");
-      ast_printd(node);
-      assertd(watching != NULL);
-      generate_assembly(fp, watching);
-      watching = watching->next;
-    }
-    for (int i = 0; i < node->arg_count; i++) {
-      // pop args
-      fprintf(fp, " pop %s\n", arg_reg[i]);
-    }
-    fprintf(fp, " call ");
-    // fprintf name of identifier
-    for (int i = 0; i < node->len; i++) {
-      fprintf(fp, "%c", *(node->name + i));
-    }
-    fprintf(fp, "\n");
-
-    // check one value was pushed for align rsp
-    // TODO: r15 is not saved if rsp % 16 == 0
-    fprintf(fp, " cmp r15, 0\n");
-    fprintf(fp, " je .Lprocess_after_align%d\n", local_label);
-    fprintf(fp, " pop r15\n");
-    fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
-    // push return value
-    fprintf(fp, " push rax\n");
+    generate_call_func(fp, node, local_label);
     return;
   }
+  case ND_FUNCDEF:
+    fprintf(fp, ".global ");
+    dynprint(fp, node->name, node->len);
+    fprintf(fp, "\n");
+    dynprint(fp, node->name, node->len);
+    fprintf(fp, ":\n");
+    // prologue
+    fprintf(fp, " push rbp\n");
+    fprintf(fp, " mov rbp, rsp\n");
+    // reserve 26 local variables in advance
+    fprintf(fp, " sub rsp, %d\n", 8 * 26);
+
+    // push args
+    fprintfd(fp, "# push func args\n");
+    for (int i = node->arg_count - 1; i >= 0; i--) {
+      fprintf(fp, " push %s\n", arg_reg[i]);
+    }
+    fprintfd(fp, "# push func args end\n");
+    Node *arg = node->first_arg;
+    fprintfd(fp, "# assign args to lvar\n");
+    for (int i = 0; i < node->arg_count; i++) {
+      assertd(arg != NULL);
+      generate_left_value(fp, arg);
+      fprintf(fp, " pop rax\n"); // arg lvar addr
+      fprintf(fp, " pop rdi\n"); // 1st arg
+      fprintf(fp, " mov [rax], rdi\n");
+      arg = arg->next;
+    }
+    fprintfd(fp, "# assign args to lvar end\n");
+    fprintfd(fp, "# func stmt\n");
+    generate_assembly(fp, node->then);
+    fprintfd(fp, "# func stmt end\n");
+
+    // revert stack pointer (rsp)
+    fprintf(fp, " mov rsp, rbp\n");
+    // revert base pointer (rbp)
+    fprintf(fp, " pop rbp\n");
+    fprintf(fp, " ret\n");
+    return;
   }
 
   // ----expr----
+  generate_expr(fp, node);
+}
+
+static void generate_call_func(FILE *fp, Node *node, int local_label) {
+  // set arguments
+  // align `rsp` to 16
+  fprintf(fp, " mov rax, rsp\n");
+  fprintf(fp, " mov rdi, 16\n");
+  fprintf(fp, " cqo\n");
+  fprintf(fp, " idiv rdi\n");   // rax / rdi
+  fprintf(fp, " cmp rdx, 0\n"); // if rsp % 16 == 0
+  fprintf(fp, " jne .Lrsp_align_else%d\n", local_label);
+  fprintf(fp, ".Lrsp_align%d:\n", local_label);
+  fprintf(fp, " push r15\n");   // align
+  fprintf(fp, " mov r15, 1\n"); // r15 is callee saved reg
+  fprintf(fp, " jmp .Lrsp_align_end%d\n", local_label);
+  fprintf(fp, ".Lrsp_align_else%d:\n", local_label);
+  fprintf(fp, " mov r15, 0\n");
+  fprintf(fp, ".Lrsp_align_end%d:\n", local_label);
+  // r15 == 1 -> pushed one value
+
+  Node *watching = node->first_arg;
+  printk("func name: %s\n", node->name);
+  printk("func arg_count: %d\n", node->arg_count);
+  ast_printd(node);
+  for (int i = 0; i < node->arg_count; i++) {
+    printk("In for\n");
+    ast_printd(node);
+    assertd(watching != NULL);
+    generate_assembly(fp, watching);
+    watching = watching->next;
+  }
+  for (int i = 0; i < node->arg_count; i++) {
+    // pop args
+    fprintf(fp, " pop %s\n", arg_reg[i]);
+  }
+  fprintf(fp, " call ");
+  // fprintf name of identifier
+  dynprint(fp, node->name, node->len);
+  fprintf(fp, "\n");
+
+  // check one value was pushed for align rsp
+  // TODO: r15 is not saved if rsp % 16 == 0
+  fprintf(fp, " cmp r15, 0\n");
+  fprintf(fp, " je .Lprocess_after_align%d\n", local_label);
+  fprintf(fp, " pop r15\n");
+  fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
+  // push return value
+  fprintf(fp, " push rax\n");
+}
+
+static void generate_expr(FILE *fp, Node *node) {
   generate_assembly(fp, node->lhs);
   generate_assembly(fp, node->rhs);
 

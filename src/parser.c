@@ -14,6 +14,8 @@ static Node *parse_mul();
 static Node *parse_unary();
 static Node *parse_primary();
 
+static Node *create_ident_node(Token *token, NodeKind kind);
+
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   printk("NEW_NODE\n");
@@ -91,13 +93,42 @@ Node *new_node_local_variable(Token *tok) {
 Node *code[100];
 
 void parse_program() {
-  int i = 0;
-  // <stmt>*
-  while (!at_eof()) {
-    code[i] = parse_stmt();
-    i++;
+  Token *ident = consume_ident();
+  Node *node = create_ident_node(ident, ND_FUNCDEF);
+  int arg_count = 0;
+  expect("(");
+
+  if (!consume_op(")")) {
+    // <ident> ("," <ident>)*
+    node->first_arg = new_node_local_variable(consume_ident());
+    arg_count++;
+    Node *tail = node->first_arg;
+    while (consume_op(",")) {
+      arg_count++;
+      tail->next = new_node_local_variable(consume_ident());
+      tail = tail->next;
+    }
+    expect(")");
   }
-  code[i] = NULL;
+
+  node->arg_count = arg_count;
+  printk("arg_count:%d\n", arg_count);
+  if (arg_count != 0) {
+    printk("%p\n", node);
+    printk("%p\n", node->first_arg);
+    printk("%p\n", node->first_arg->next);
+    printk("%p\n", node->first_arg->next->next);
+  }
+  if (arg_count > 6) {
+    ast_printd(node);
+    printf("In order to see constructed AST, enable RustDebug, which needs "
+           "definition of RUSTD\n");
+    printf("currently more than 6 function arguments is not supported\n");
+    exit(0);
+  }
+  node->then = parse_stmt();
+  code[0] = node;
+  code[1] = NULL;
 }
 
 Node *parse_stmt() {
@@ -312,10 +343,7 @@ Node *parse_primary() {
   Token *token = consume_ident();
   if (consume_op("(")) {
     // function call
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_CALLFUNC;
-    node->name = token->str;
-    node->len = token->len;
+    Node *node = create_ident_node(token, ND_CALLFUNC);
     int arg_count = 0;
     if (!consume_op(")")) {
       // <expr> ("," <expr>)*
@@ -329,9 +357,9 @@ Node *parse_primary() {
         tail = tail->next;
         ast_printd(node);
       }
+      node->arg_count = arg_count;
       expect(")");
       if (arg_count > 6) {
-        node->arg_count = arg_count;
         ast_printd(node);
         printf("In order to see constructed AST, enable RustDebug, which needs "
                "definition of RUSTD\n");
@@ -339,12 +367,21 @@ Node *parse_primary() {
         exit(0);
       }
     }
-    node->arg_count = arg_count;
     return node;
   } else {
     Node *node = new_node_local_variable(token);
     return node;
   }
+}
+
+// return specified kind node from token
+static Node *create_ident_node(Token *token, NodeKind kind) {
+  assertd(token->kind == TK_IDENT);
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  node->name = token->str;
+  node->len = token->len;
+  return node;
 }
 // --------------parser----------------
 

@@ -41,6 +41,7 @@ typedef enum {
   ND_RETURN,    // return
   ND_BLOCKSTMT, // { <stmt>* }
   ND_CALLFUNC,  // function call
+  ND_FUNCDEF,   // definition of function
 } NodeKind;
 
 typedef struct Node Node;
@@ -54,7 +55,7 @@ struct Node {
   Node *initialization; // for
   Node *increment;      // for
   Node *els;            // else
-  Node *then;           // if or while or for
+  Node *then;           // if or while or for or ND_FUNCDEF
 
   // when(kind == ND_BLOCKSTMT) next := next stmt node (<stmt>)
   // when(kind == Any && parsing block stmt) next := next_statement
@@ -62,6 +63,7 @@ struct Node {
   Node *next;
 
   // when(kind == ND_CALLFUNC) next := first arg(<expr>)
+  // when(kind == ND_FUNCDEF) next := first arg(<ident>)
   Node *first_arg;
 
   char *name; // when (kind == ND_CALLFUNC)
