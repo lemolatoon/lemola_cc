@@ -31,6 +31,11 @@ assert() {
 
 assert 233 "main(){return fibona(13);}"
 
+assert 5 "main() {f(2);} f(n) {return n + 3;}"
+assert 5 "main() {f(2);} f(n) {if(n == 0) {return 1;}return n + 3;}"
+assert 1 "main() {f(0);} f(n) {if(n == 0) {return 1;}return n + 3;}"
+assert 7 "main() {f(2);} f(n) {if(n == 0) {return 1;}return f(n) + 3;}"
+
 assert 0 "main(){0;}"
 assert 42 "main(){42;}"
 assert 129 "main(){129;}"
