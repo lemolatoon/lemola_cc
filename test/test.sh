@@ -116,7 +116,12 @@ assert 3 "main() {return div(6, 2);}"
 assert 24 "main() {return f(4);} f(n) {if (n == 0) {return 1;} return n  * f(n - 1);}"
 assert 2 "main() {return divide(6, 3);} divide(a, b) {return a / b;}"
 assert 21 "main() {return addd(6);} addd(n) {if (n == 0) {return 0;}return n + addd(n - 1);}"
-assert 233 "main() {return for(i = 0; i < 10; i++) {fib(i);}} fib(i) {if (i == 0) {return 0;} else if(i == 1) {return 1;} else {return fib(i - 1) + fib(i - 2);}}"
+assert 8 "main() {return f(5);} f(n) {i = 3; return i + n;}"
+
+# failure 3 cases
+assert 9 "main() {return f(5);} f(n) {i = 3; if (n > 4) {return f(n-1) + 2;}  return i + n;}"
+assert 2 "main() {return fib(3)} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
+assert 3 "main() {return fib(4)} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
 
 
 call "main(){print_ok(); return 0;}"
