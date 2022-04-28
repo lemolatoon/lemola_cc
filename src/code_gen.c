@@ -225,7 +225,7 @@ static void generate_call_func(FILE *fp, Node *node, int local_label) {
     generate_assembly(fp, watching);
     watching = watching->next;
   }
-  for (int i = 0; i < node->arg_count; i++) {
+  for (int i = node->arg_count - 1; i >= 0; i--) {
     // pop args
     fprintf(fp, " pop %s\n", arg_reg[i]);
   }

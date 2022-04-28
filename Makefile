@@ -39,8 +39,8 @@ $(RUSTLIBPATH): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.t
 	cd .. && \
 	cp $(RUSTLIB) $(MKFILE_PATH)dynlib/ 
 
-a.out: src.s lemola_cc
-	$(CC) src.s $(ASFLAG)
+a.out: src.s lemola_cc tmp.c
+	$(CC) src.s $(ASFLAG) tmp.c
 
 .PHONY: clean
 clean:

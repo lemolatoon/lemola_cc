@@ -124,12 +124,6 @@ static Node *parse_func() {
 
   node->arg_count = arg_count;
   printk("arg_count:%d\n", arg_count);
-  if (arg_count != 0) {
-    printk("%p\n", node);
-    printk("%p\n", node->first_arg);
-    printk("%p\n", node->first_arg->next);
-    printk("%p\n", node->first_arg->next->next);
-  }
   if (arg_count > 6) {
     ast_printd(node);
     printf("In order to see constructed AST, enable RustDebug, which needs "
