@@ -4,7 +4,9 @@
 
 // --------------parser----------------
 
-Node *parse_stmt();
+void parse_program();
+static Node *parse_func();
+static Node *parse_stmt();
 static Node *parse_expr();
 static Node *parse_equality();
 static Node *parse_assign();
@@ -93,6 +95,15 @@ Node *new_node_local_variable(Token *tok) {
 Node *code[100];
 
 void parse_program() {
+  int i = 0;
+  while (!at_eof()) {
+    code[i] = parse_func();
+    i++;
+  }
+  code[i] = NULL;
+}
+
+static Node *parse_func() {
   Token *ident = consume_ident();
   Node *node = create_ident_node(ident, ND_FUNCDEF);
   int arg_count = 0;
@@ -127,8 +138,7 @@ void parse_program() {
     exit(0);
   }
   node->then = parse_stmt();
-  code[0] = node;
-  code[1] = NULL;
+  return node;
 }
 
 Node *parse_stmt() {

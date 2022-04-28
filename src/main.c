@@ -33,7 +33,6 @@ int main(int argc, char **argv) {
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
-  fprintf(target_pointer, ".global main\n");
 
   printk("===========code_gen================\n");
 
@@ -42,8 +41,8 @@ int main(int argc, char **argv) {
     ast_printd(code[i]);
     generate_assembly(target_pointer, code[i]);
 
-    // pop result of evaluation of the last expression
-    fprintf(target_pointer, " pop rax\n");
+    // // pop result of evaluation of the last expression
+    // fprintf(target_pointer, " pop rax\n");
   }
   // generate assembly while getting down AST(Abstract Syntax Tree)
   printk("===========code_gen end=============\n");

@@ -28,6 +28,7 @@ assert() {
     fi
 }
 
+
 assert 0 "main(){0;}"
 assert 42 "main(){42;}"
 assert 129 "main(){129;}"
@@ -108,6 +109,9 @@ assert 21 "main(){return sum(1, 2, 3, 4, 5, 6);}"
 assert 19 "main(){return test();}"
 assert 19 "main(){return sum(sum(five(), five(), 0, 0, 0, 0), five(), 1, 1, 1, 1);}"
 assert 5 "main() {return 5;}"
+
+assert 24 "main() {return f(4);} f(n) {if (n == 0) {return 1;} return n  * f(n - 1);}"
+# assert 233 "main() {return fib(4);} fib(i) {if (i == 0) {return 0;} else if(i == 1) {return 1;} else {return fib(i - 1) + fib(i - 2);}}"
 
 
 call "main(){print_ok(); return 0;}"
