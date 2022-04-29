@@ -161,7 +161,7 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintf(fp, " push rbp\n");
     fprintf(fp, " mov rbp, rsp\n");
     // reserve 26 local variables in advance
-    fprintf(fp, " sub rsp, %d\n", 8 * 26);
+    fprintf(fp, " sub rsp, %d\n", 8 * 26); // 8 * 26
 
     // push args
     fprintfd(fp, "# push func args\n");
@@ -172,10 +172,11 @@ void generate_assembly(FILE *fp, Node *node) {
     Node *arg = node->first_arg;
     fprintfd(fp, "# assign args to lvar\n");
     for (int i = 0; i < node->arg_count; i++) {
+      assertd(arg->kind == ND_LVAR);
       assertd(arg != NULL);
       generate_left_value(fp, arg);
       fprintf(fp, " pop rax\n"); // arg lvar addr
-      fprintf(fp, " pop rdi\n"); // 1st arg
+      fprintf(fp, " pop rdi\n"); // i-th arg (rdi, ...)
       fprintf(fp, " mov [rax], rdi\n");
       arg = arg->next;
     }
@@ -197,21 +198,22 @@ void generate_assembly(FILE *fp, Node *node) {
 }
 
 static void generate_call_func(FILE *fp, Node *node, int local_label) {
+  assertd(node->kind == ND_CALLFUNC);
   // set arguments
   // align `rsp` to 16
-  fprintf(fp, " mov rax, rsp\n");
-  fprintf(fp, " mov rdi, 16\n");
-  fprintf(fp, " cqo\n");
-  fprintf(fp, " idiv rdi\n");   // rax / rdi
-  fprintf(fp, " cmp rdx, 0\n"); // if rsp % 16 == 0
-  fprintf(fp, " jne .Lrsp_align_else%d\n", local_label);
-  fprintf(fp, ".Lrsp_align%d:\n", local_label);
-  fprintf(fp, " push r15\n");   // align
-  fprintf(fp, " mov r15, 1\n"); // r15 is callee saved reg
-  fprintf(fp, " jmp .Lrsp_align_end%d\n", local_label);
-  fprintf(fp, ".Lrsp_align_else%d:\n", local_label);
-  fprintf(fp, " mov r15, 0\n");
-  fprintf(fp, ".Lrsp_align_end%d:\n", local_label);
+  // fprintf(fp, " mov rax, rsp\n");
+  // fprintf(fp, " mov rdi, 16\n");
+  // fprintf(fp, " cqo\n");
+  // fprintf(fp, " idiv rdi\n");   // rax / rdi
+  // fprintf(fp, " cmp rdx, 0\n"); // if rsp % 16 == 0
+  // fprintf(fp, " jne .Lrsp_align_else%d\n", local_label);
+  // fprintf(fp, ".Lrsp_align%d:\n", local_label);
+  // fprintf(fp, " push r15\n");   // align
+  // fprintf(fp, " mov r15, 1\n"); // r15 is callee saved reg
+  // fprintf(fp, " jmp .Lrsp_align_end%d\n", local_label);
+  // fprintf(fp, ".Lrsp_align_else%d:\n", local_label);
+  // fprintf(fp, " mov r15, 0\n");
+  // fprintf(fp, ".Lrsp_align_end%d:\n", local_label);
   // r15 == 1 -> pushed one value
 
   Node *watching = node->first_arg;
@@ -236,10 +238,10 @@ static void generate_call_func(FILE *fp, Node *node, int local_label) {
 
   // check one value was pushed for align rsp
   // TODO: r15 is not saved if rsp % 16 == 0
-  fprintf(fp, " cmp r15, 0\n");
-  fprintf(fp, " je .Lprocess_after_align%d\n", local_label);
-  fprintf(fp, " pop r15\n");
-  fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
+  // fprintf(fp, " cmp r15, 0\n");
+  // fprintf(fp, " je .Lprocess_after_align%d\n", local_label);
+  // fprintf(fp, " pop r15\n");
+  // fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
   // push return value
   fprintf(fp, " push rax\n");
 }

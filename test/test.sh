@@ -34,7 +34,7 @@ assert 233 "main(){return fibona(13);}"
 assert 5 "main() {f(2);} f(n) {return n + 3;}"
 assert 5 "main() {f(2);} f(n) {if(n == 0) {return 1;}return n + 3;}"
 assert 1 "main() {f(0);} f(n) {if(n == 0) {return 1;}return n + 3;}"
-assert 7 "main() {f(2);} f(n) {if(n == 0) {return 1;}return f(n) + 3;}"
+assert 7 "main() {f(2);} f(n) {if(n == 0) {return 1;}return f(n - 1) + 3;}"
 
 assert 0 "main(){0;}"
 assert 42 "main(){42;}"
@@ -124,9 +124,38 @@ assert 21 "main() {return addd(6);} addd(n) {if (n == 0) {return 0;}return n + a
 assert 8 "main() {return f(5);} f(n) {i = 3; return i + n;}"
 
 # failure 3 cases
-assert 9 "main() {return f(5);} f(n) {i = 3; if (n > 4) {return f(n-1) + 2;}  return i + n;}"
-assert 2 "main() {return fib(3)} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
-assert 3 "main() {return fib(4)} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
+
+assert 8 "
+main() { return f(3); }
+f(i) {
+
+  if (i == 0) {
+    return 1;
+  }
+  two = 2;
+  return two(two) * f(i - 1);
+}
+
+two(i) { return i; }
+"
+
+assert 8 "
+main() { return f(3); }
+f(i) {
+
+  if (i == 0) {
+    return 1;
+  }
+  two = 2;
+  if (two != 2)
+    return 2;
+  return two(two) * f(i - 1);
+}
+
+two(i) { return i; }
+"
+assert 2 "main() {return fib(3);} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
+assert 3 "main() {return fib(4);} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
 
 
 call "main(){print_ok(); return 0;}"

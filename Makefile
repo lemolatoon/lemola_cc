@@ -40,8 +40,7 @@ $(RUSTLIBPATH): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.t
 	cp $(RUSTLIB) $(MKFILE_PATH)dynlib/ 
 
 a.out: src.s lemola_cc tmp.c
-	$(CC) src.s $(ASFLAG) tmp.c
-
+	$(CC) src.s $(ASFLAG) 
 .PHONY: clean
 clean:
 	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c \
@@ -50,6 +49,23 @@ clean:
 .PHONY: test
 test: lemola_cc
 	./test/test.sh
+
+.PHONY: test1
+test1: lemola_cc test/test.c test/test_utils.c
+	cd test && \
+		../lemola_cc test.c && \
+		$(CC) -c test_utils.c && \
+		$(CC) src.s test_utils.o -o tmp && \
+		./tmp
+
+test3: lemola_cc test/test3.c test/test.c test/test_utils.c
+	cd test && \
+		../lemola_cc test.c && \
+		clang src.s test3.c  -o tmp && \
+		./tmp
+
+test_all: test test1
+
 
 .PHONY: rev_asm
 rev_asm: a.out
