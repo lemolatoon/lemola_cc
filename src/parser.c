@@ -92,7 +92,7 @@ Node *new_node_local_variable(Token *tok) {
 
 // Ensure to access after calling `parse_program()`.
 // The last element will be set NULL.
-Node *code[100];
+Node *code[1000];
 
 void parse_program() {
   int i = 0;

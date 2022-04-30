@@ -12,6 +12,23 @@ static void dynprint(FILE *fp, char *head, int len) {
   }
 }
 
+// depth of rsp
+static int depth = 0;
+
+// just push arg
+// arg must end with '\0'
+static void push(FILE *fp, char *arg) {
+  fprintf(fp, " push %s\n", arg);
+  depth++;
+}
+
+// just pop arg
+// arg must end with '\0'
+static void pop(FILE *fp, char *arg) {
+  fprintf(fp, " pop %s\n", arg);
+  depth--;
+}
+
 // Calculate address of left value and push it
 static void generate_left_value(FILE *fp, Node *node) {
   fprintfd(fp, "# gen lvar's addr\n");
@@ -23,7 +40,7 @@ static void generate_left_value(FILE *fp, Node *node) {
   // calculating address of local variable by using offset in stack from rbp
   // rax = rbp - offset ; address calculation
   fprintf(fp, " sub rax, %d\n", node->offset);
-  fprintf(fp, " push rax\n");
+  push(fp, "rax");
   fprintfd(fp, "# gen lvar's addr end\n");
 }
 
@@ -38,7 +55,7 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintfd(fp, "# return\n");
     generate_assembly(fp, node->lhs);
     // pop node->lhs evaluation
-    fprintf(fp, " pop rax\n");
+    pop(fp, "rax");
     // revert rsp to mem which is storing the previous rbp
     fprintf(fp, " mov rsp, rbp\n");
     // revert rbp
@@ -51,7 +68,7 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintfd(fp, "# if\n");
     fprintfd(fp, "# condition\n");
     generate_assembly(fp, node->condition);
-    fprintf(fp, " pop rax\n");
+    pop(fp, "rax");
     fprintf(fp, " cmp rax, 0\n");
     fprintfd(fp, "# condition end\n");
     // if comparation == 0 then jump
@@ -71,7 +88,7 @@ void generate_assembly(FILE *fp, Node *node) {
   case ND_WHILE:
     fprintf(fp, ".Lbegin%d:\n", local_label);
     generate_assembly(fp, node->condition);
-    fprintf(fp, " pop rax\n");
+    pop(fp, "rax");
     fprintf(fp, " cmp rax, 0\n");
     // if not satisfy then jmp
     fprintf(fp, " je  .Lend%d\n", local_label);
@@ -94,7 +111,7 @@ void generate_assembly(FILE *fp, Node *node) {
       generate_assembly(fp, node->condition);
       fprintfd(fp, "# condition end\n");
       fprintfd(fp, "# cmp jmp\n");
-      fprintf(fp, " pop rax\n");
+      pop(fp, "rax");
       fprintf(fp, " cmp rax, 0\n");
       // if condition not satisfied
       fprintf(fp, " je .Lend%d\n", local_label);
@@ -112,27 +129,31 @@ void generate_assembly(FILE *fp, Node *node) {
     fprintf(fp, ".Lend%d:\n", local_label);
     fprintfd(fp, "# for end\n");
     return;
-  case ND_NUM:
-    fprintf(fp, " push %d\n", node->value);
+  case ND_NUM: {
+    char num[100];
+    snprintf(num, sizeof(num), "%d", node->value);
+    push(fp, num);
+    // same as `fprintf(fp, " push %d\n", node->value);`
     return;
+  }
   case ND_LVAR:
     generate_left_value(fp, node);
-    fprintf(fp, " pop rax\n");
+    pop(fp, "rax");
     // load value rax pointing to
     fprintf(fp, " mov rax, [rax]\n");
     // push rax as result of evaluation
-    fprintf(fp, " push rax\n");
+    push(fp, "rax");
     return;
   case ND_ASSIGN:
     generate_left_value(fp, node->lhs);
     generate_assembly(fp, node->rhs);
 
-    fprintf(fp, " pop rdi\n"); // right value
-    fprintf(fp, " pop rax\n"); // left value(address)
+    pop(fp, "rdi"); // right value
+    pop(fp, "rax"); // left value(address)
     // *rax = rdi
     fprintf(fp, " mov [rax], rdi\n");
     // `a = b` returns b
-    fprintf(fp, " push rdi\n");
+    push(fp, "rdi");
     return;
   case ND_BLOCKSTMT: {
     printk("ND_BLOCKSTMT\n");
@@ -141,10 +162,10 @@ void generate_assembly(FILE *fp, Node *node) {
     // generate assembly until statement is null
     while (watching != NULL) {
       generate_assembly(fp, watching);
-      fprintf(fp, " pop rax\n");
+      pop(fp, "rax");
       watching = watching->next;
     }
-    fprintf(fp, " push rax\n");
+    push(fp, "rax");
     return;
   }
   case ND_CALLFUNC: {
@@ -166,7 +187,7 @@ void generate_assembly(FILE *fp, Node *node) {
     // push args
     fprintfd(fp, "# push func args\n");
     for (int i = node->arg_count - 1; i >= 0; i--) {
-      fprintf(fp, " push %s\n", arg_reg[i]);
+      push(fp, arg_reg[i]);
     }
     fprintfd(fp, "# push func args end\n");
     Node *arg = node->first_arg;
@@ -175,8 +196,8 @@ void generate_assembly(FILE *fp, Node *node) {
       assertd(arg->kind == ND_LVAR);
       assertd(arg != NULL);
       generate_left_value(fp, arg);
-      fprintf(fp, " pop rax\n"); // arg lvar addr
-      fprintf(fp, " pop rdi\n"); // i-th arg (rdi, ...)
+      pop(fp, "rax"); // arg lvar addr
+      pop(fp, "rdi"); // i-th arg (rdi, ...)
       fprintf(fp, " mov [rax], rdi\n");
       arg = arg->next;
     }
@@ -229,12 +250,22 @@ static void generate_call_func(FILE *fp, Node *node, int local_label) {
   }
   for (int i = node->arg_count - 1; i >= 0; i--) {
     // pop args
-    fprintf(fp, " pop %s\n", arg_reg[i]);
+    pop(fp, arg_reg[i]);
   }
-  fprintf(fp, " call ");
-  // fprintf name of identifier
-  dynprint(fp, node->name, node->len);
-  fprintf(fp, "\n");
+
+  if (depth % 2 == 0) {
+    fprintf(fp, " call ");
+    // fprintf name of identifier
+    dynprint(fp, node->name, node->len);
+    fprintf(fp, "\n");
+  } else {
+    fprintf(fp, "sub rsp, 8\n"); // align rsp
+    fprintf(fp, " call ");
+    // fprintf name of identifier
+    dynprint(fp, node->name, node->len);
+    fprintf(fp, "\n");
+    fprintf(fp, "add rsp, 8\n"); // revert rsp
+  }
 
   // check one value was pushed for align rsp
   // TODO: r15 is not saved if rsp % 16 == 0
@@ -243,15 +274,15 @@ static void generate_call_func(FILE *fp, Node *node, int local_label) {
   // fprintf(fp, " pop r15\n");
   // fprintf(fp, " .Lprocess_after_align%d:\n", local_label);
   // push return value
-  fprintf(fp, " push rax\n");
+  push(fp, "rax");
 }
 
 static void generate_expr(FILE *fp, Node *node) {
   generate_assembly(fp, node->lhs);
   generate_assembly(fp, node->rhs);
 
-  fprintf(fp, " pop rdi\n");
-  fprintf(fp, " pop rax\n");
+  pop(fp, "rdi");
+  pop(fp, "rax");
 
   switch (node->kind) {
   case ND_EQ:
@@ -306,7 +337,8 @@ static void generate_expr(FILE *fp, Node *node) {
     error("Unexpected NodeKind: %d", node->kind);
   }
 
-  fprintf(fp, " push rax\n");
+  // push evaluated value
+  push(fp, "rax");
 }
 
 // For debugging

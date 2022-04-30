@@ -14,9 +14,10 @@ int main(int argc, char **argv) {
   FILE *target_pointer = fopen("src.s", "w");
 
   // buffer
-  char s[1024];
+  const SIZE = 1048576;
+  char s[SIZE];
   char *buf_ptr = &s[0];
-  while (fgets(buf_ptr, 1024 - (buf_ptr - &s[0]), source_pointer) != NULL) {
+  while (fgets(buf_ptr, SIZE - (buf_ptr - &s[0]), source_pointer) != NULL) {
     buf_ptr = buf_ptr + strlen(buf_ptr);
     *buf_ptr = (char)0;
   };

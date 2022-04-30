@@ -41,17 +41,19 @@ $(RUSTLIBPATH): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.t
 
 a.out: src.s lemola_cc tmp.c
 	$(CC) src.s $(ASFLAG) 
+
+
 .PHONY: clean
 clean:
 	rm -f ./lemola_cc src.s a.out test/tmp test/src.s test/tmp.c \
 	src/lemola_cc.o src/main.o src/parser.o src/tokenizer.o src/code_gen.o
 
-.PHONY: test
-test: lemola_cc
+.PHONY: test_old
+test_old: lemola_cc
 	./test/test.sh
 
-.PHONY: test1
-test1: lemola_cc test/test.c test/test_utils.c
+.PHONY: test
+test: lemola_cc test/test.c test/test_utils.c
 	cd test && \
 		../lemola_cc test.c && \
 		$(CC) -c test_utils.c && \
@@ -64,7 +66,7 @@ test3: lemola_cc test/test3.c test/test.c test/test_utils.c
 		clang src.s test3.c  -o tmp && \
 		./tmp
 
-test_all: test test1
+test_all: test test_old
 
 
 .PHONY: rev_asm

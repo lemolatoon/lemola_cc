@@ -6,6 +6,7 @@ src.s
 a.out
 lemola_cc
 tmp.c
+tmp.s
 
 # under test/
 test/tmp

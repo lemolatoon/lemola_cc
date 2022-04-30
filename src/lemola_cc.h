@@ -90,7 +90,7 @@ struct LVar {
 
 // Ensure to access after calling `parse_program()`.
 // The last element will be set NULL.
-extern Node *code[100];
+extern Node *code[1000];
 
 void parse_program();
 

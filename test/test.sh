@@ -158,4 +158,5 @@ assert 2 "main() {return fib(3);} fib(i) {if (i == 0) {return 0;} if(i == 1) {re
 assert 3 "main() {return fib(4);} fib(i) {if (i == 0) {return 0;} if(i == 1) {return 1;}return fib(i - 1) + fib(i - 2);}"
 
 
+
 call "main(){print_ok(); return 0;}"
