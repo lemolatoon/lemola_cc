@@ -24,6 +24,7 @@ enum NodeKind {
     ND_FUNCDEF,   // definition of function
     ND_ADDR,      // & <unary>
     ND_DEREF,     // * <unary>
+    ND_DECLARE,   // int x;
 }
 
 #[repr(C)]
@@ -198,6 +199,13 @@ impl Debug for Node<'_> {
                     .field("lhs", &self.lhs)
                     .field("next", next)
                     .finish(),
+                ND_DECLARE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", unsafe { &(self.rhs as *const Node).as_ref() })
+                    .field("next", next)
+                    .finish(),
                 _ => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
@@ -285,6 +293,12 @@ impl Debug for Node<'_> {
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
                     .finish(),
+                ND_DECLARE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", unsafe { &(self.rhs as *const Node).as_ref() })
+                    .finish(),
                 _ => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
@@ -321,6 +335,7 @@ enum TokenKind {
     TK_FOR,      // for
     TK_ELSE,     // else
     TK_NUM,      // number literal
+    TK_INT,      // int
     TK_EOF,      // End of File
 }
 

@@ -20,7 +20,7 @@ void generate_head(FILE *fp, Node *node) {
   assert(depth == 0);
 }
 
-static void dynprint(FILE *fp, char *head, int len) {
+void dynprint(FILE *fp, char *head, int len) {
   for (int i = 0; i < len; i++) {
     fprintf(fp, "%c", *(head + i));
   }
@@ -114,6 +114,7 @@ void generate_stmt(FILE *fp, Node *node) {
     pop(fp, "rax");
     // revert rsp to mem which is storing the previous rbp
     fprintf(fp, " mov rsp, rbp\n");
+    printk("=============parse_func=========");
     // revert rbp
     fprintf(fp, " pop rbp\n");
     fprintf(fp, " ret\n");
@@ -285,6 +286,10 @@ static void generate_expr(FILE *fp, Node *node) {
     fprintf(fp, " mov rax, [rax]\n");
     fprintf(fp, " push rax\n");
     fprintfd(fp, "# deref end\n");
+    return;
+  case ND_DECLARE:
+    node->rhs = new_node_num(0); // init value
+    generate_expr(fp, new_node(ND_ASSIGN, node->lhs, node->rhs));
     return;
   }
 

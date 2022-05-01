@@ -78,6 +78,19 @@ void expect(char *op) {
   token = token->next;
 }
 
+// When the next token is expected kind, then token will be replaced with
+// next token. Otherwise call `error()`
+void expect_token(TokenKind kind) {
+  if (token->kind != kind) {
+    token_printd(token);
+    fprintf(stderr, "expected '%d', but got %d\n", kind, token->kind);
+    fprintf(stderr, "HERE IS THE REST OF CODES\n");
+    fprintf(stderr, "`%s`\n", token->str);
+    error("ERR\n");
+  }
+  token = token->next;
+}
+
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
 int expect_number() {
@@ -217,6 +230,8 @@ Token *tokenize(char *p) {
         current_token = new_token(TK_FOR, current_token, p, white_ptr);
       } else if (len == 4 && !strncmp(p, "else", 4)) {
         current_token = new_token(TK_ELSE, current_token, p, white_ptr);
+      } else if (len == 3 && !strncmp(p, "int", 3)) {
+        current_token = new_token(TK_INT, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);
       }

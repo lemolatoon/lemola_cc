@@ -65,28 +65,52 @@ Node *new_node_local_variable(Token *tok) {
 
   LVar *lvar = find_lvar(tok);
   if (lvar != NULL) {
-    printk("THIS LVAR EXISTS\n");
-    // Treat node as lvar
-    node->offset = lvar->offset;
-  } else {
-    printk("CREATE NEW LVAR\n");
-    // Create new local variable
-    lvar = calloc(1, sizeof(LVar));
-    // next var of lvar is head of locals
-    lvar->next = locals;
-    lvar->name = tok->str;
-    lvar->len = tok->len;
-    if (locals == NULL) {
-      lvar->offset = 8;
-    } else {
-      lvar->offset = locals->offset + 8;
-    }
-    node->offset = lvar->offset;
-    // set lvar head of locals
-    locals = lvar;
-    printk("FINISH CREATE LVAR\n");
+    fprintf(stderr, "local variable: ");
+    dynprint(stderr, tok->str, tok->len);
+    fprintf(stderr, " is already defined\n");
+    fprintf(stderr, "HERE IS CODES");
+    fprintf(stderr, "%s\n", tok->str);
+    error("Error: Redefined Local Variable\n");
   }
+  // Create new local variable
+  lvar = calloc(1, sizeof(LVar));
+  // next var of lvar is head of locals
+  lvar->next = locals;
+  lvar->name = tok->str;
+  lvar->len = tok->len;
+  if (locals == NULL) {
+    lvar->offset = 8;
+  } else {
+    lvar->offset = locals->offset + 8;
+  }
+  node->offset = lvar->offset;
+  // set lvar head of locals
+  locals = lvar;
+  printk("FINISH CREATE LVAR\n");
+  ast_printd(node);
+  lvar_printd(lvar);
+  assertd(locals != NULL);
 
+  return node;
+}
+
+Node *get_lvar(Token *tok) {
+  printk("CREATE NEW LVAR\n");
+  assertd(tok->kind == TK_IDENT);
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_LVAR;
+  LVar *lvar = find_lvar(tok);
+  lvar_printd(locals);
+  if (lvar == NULL) {
+    fprintf(stderr, "local variable: ");
+    dynprint(stderr, tok->str, tok->len);
+    fprintf(stderr, " is not defined\n");
+    fprintf(stderr, "HERE IS CODES\n");
+    fprintf(stderr, "%s\n", tok->str);
+    error("Error: Undefined Local Variable\n");
+  }
+  // Treat node as lvar
+  node->offset = lvar->offset;
   return node;
 }
 
@@ -98,24 +122,29 @@ void parse_program() {
   int i = 0;
   while (!at_eof()) {
     code[i] = parse_func();
+    locals = NULL;
     i++;
   }
   code[i] = NULL;
 }
 
 static Node *parse_func() {
+  printk("=============parse_func=========\n");
+  expect_token(TK_INT);
   Token *ident = consume_ident();
   Node *node = create_ident_node(ident, ND_FUNCDEF);
   int arg_count = 0;
   expect("(");
 
   if (!consume_op(")")) {
-    // <ident> ("," <ident>)*
+    // "int" <ident> ("," "int" <ident>)*
+    expect_token(TK_INT);
     node->first_arg = new_node_local_variable(consume_ident());
     arg_count++;
     Node *tail = node->first_arg;
     while (consume_op(",")) {
       arg_count++;
+      expect_token(TK_INT);
       tail->next = new_node_local_variable(consume_ident());
       tail = tail->next;
     }
@@ -132,11 +161,13 @@ static Node *parse_func() {
     exit(0);
   }
   node->then = parse_stmt();
+  printk("=============parse_func=========\n");
   return node;
 }
 
 Node *parse_stmt() {
   printk("===parse_stmt===\n");
+  token_printd(token);
   Node *node;
   if (consume(TK_RETURN)) {
     // "return" <expr> ";"
@@ -210,8 +241,15 @@ Node *parse_stmt() {
 }
 
 Node *parse_expr() {
-  // <assign>
+  // <assign> | "int" <expr> ";"
   printk("===parse_expr===\n");
+  if (consume(TK_INT)) {
+    printk("NEW LOCAL VARIABLE\n");
+    Node *node =
+        new_node(ND_DECLARE, new_node_local_variable(consume_ident()), NULL);
+    printk("==parse_expr=====\n");
+    return node;
+  }
   Node *node = parse_assign();
   printk("==parse_expr=====\n");
   return node;
@@ -385,7 +423,7 @@ Node *parse_primary() {
     }
     return node;
   } else {
-    Node *node = new_node_local_variable(token);
+    Node *node = get_lvar(token);
     return node;
   }
 }

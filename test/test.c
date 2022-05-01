@@ -1,4 +1,4 @@
-main() {
+int main() {
   assert(1, 9, test1());
   assert(2, 5, test2(5));
   assert(3, 5, test3(5));
@@ -15,9 +15,10 @@ main() {
   return 0;
 }
 
-test1() { return f(5); }
+int test1() { return f(5); }
 
-f(n) {
+int f(int n) {
+  int i;
   i = 3;
   if (n > 4) {
     return f(n - 1) + 2;
@@ -26,7 +27,7 @@ f(n) {
   return i + n;
 }
 
-test2(i) {
+int test2(int i) {
   if (i == 0) {
     return 0;
   }
@@ -37,7 +38,7 @@ test2(i) {
   return i;
 }
 
-test3(i) {
+int test3(int i) {
   if (i == 0) {
     return 0;
   }
@@ -48,7 +49,7 @@ test3(i) {
   return test3(i - 1) + 1;
 }
 
-test4(i) {
+int test4(int i) {
   if (i == 0) {
     return 0;
   }
@@ -59,21 +60,23 @@ test4(i) {
   return test4(i - 1) + test4(i - 2);
 }
 
-test5(i) { return add(i, 1000000) + sub(i, 1000000); }
+int test5(int i) { return add(i, 1000000) + sub(i, 1000000); }
 
-test6(i) {
+int test6(int i) {
   if (i == 0) {
     return 1;
   }
   return i * test6(i - 1);
 }
 
-test7(n) {
+int test7(int n) {
   if (n == 1) {
     return 0;
   }
 
+  int result;
   result = 1;
+  int i;
   for (i = 2; i < n; i = i + 1) {
     if (n % i == 0) {
       result = 0;
@@ -82,12 +85,14 @@ test7(n) {
   return result;
 }
 
-test8() {
+int test8() {
+  int x;
   x = 3;
+  int y;
   y = &x;
   return *y;
 }
 
-add(x, y) { return x + y; }
+int add(int x, int y) { return x + y; }
 
-sub(x, y) { return x - y; }
+int sub(int x, int y) { return x - y; }

@@ -44,6 +44,7 @@ typedef enum {
   ND_FUNCDEF,   // definition of function
   ND_ADDR,      // & <unary>(in lhs)
   ND_DEREF,     // * <unary>(in lhs)
+  ND_DECLARE,   // "int" <ident> ";" lhs: ND_LVAR, rhs: init value
 } NodeKind;
 
 typedef struct Node Node;
@@ -119,6 +120,7 @@ typedef enum {
   TK_FOR,      // for
   TK_ELSE,     // else
   TK_NUM,      // number literal
+  TK_INT,      // int
   TK_EOF,      // End of File
 } TokenKind;
 
@@ -146,6 +148,10 @@ bool consume(TokenKind kind);
 // next token. Otherwise call `error()`
 void expect(char *op);
 
+// When the next token is expected kind, then token will be replaced with
+// next token. Otherwise call `error()`
+void expect_token(TokenKind kind);
+
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
 int expect_number();
@@ -167,6 +173,7 @@ Token *tokenize(char *p);
 // -------------code_gen---------------
 void generate_head(FILE *fp, Node *node);
 void get_exit(FILE *fp);
+void dynprint(FILE *fp, char *head, int len);
 // -------------code_gen---------------
 
 // ---------------utils----------------
