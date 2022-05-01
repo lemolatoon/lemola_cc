@@ -48,6 +48,7 @@ typedef enum {
 } NodeKind;
 
 typedef struct Node Node;
+typedef struct Type Type;
 
 struct Node {
   NodeKind kind; // type of Node
@@ -80,6 +81,7 @@ struct Node {
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
+  Type *type; // when(kind == ND_LVAR): type of lvar
 };
 
 typedef struct LVar LVar;
@@ -89,6 +91,12 @@ struct LVar {
   char *name; // name of variable
   int len;    // length of variable name
   int offset; // offset from rbp
+  Type *type; // type of lvar
+};
+
+struct Type {
+  enum { INT, PTR } ty; // pointer or int
+  struct Type *ptr_to;  // when(ty==PTR), type is the pointer to `ptr_to`
 };
 
 // Ensure to access after calling `parse_program()`.

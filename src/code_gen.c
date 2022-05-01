@@ -30,7 +30,6 @@ void dynprint(FILE *fp, char *head, int len) {
 // arg must end with '\0'
 static void push(FILE *fp, char *arg) {
   fprintf(fp, " push %s\n", arg);
-  printk("PUSH!!!!!\n");
   depth++;
 }
 
@@ -38,7 +37,6 @@ static void push(FILE *fp, char *arg) {
 // arg must end with '\0'
 static void pop(FILE *fp, char *arg) {
   fprintf(fp, " pop %s\n", arg);
-  printk("POP!!!!!\n");
   depth--;
 }
 
@@ -87,16 +85,20 @@ static void generate_funcdef(FILE *fp, Node *node) {
 // Calculate address of left value and push it
 static void generate_left_value(FILE *fp, Node *node) {
   fprintfd(fp, "# gen lvar's addr\n");
-  if (node->kind != ND_LVAR) {
+  if (node->kind == ND_DEREF) {
+    generate_expr(fp, node->lhs);
+    return;
+  } else if (node->kind == ND_LVAR) {
+    // rax = rbp
+    fprintf(fp, " mov rax, rbp\n");
+    // calculating address of local variable by using offset in stack from rbp
+    // rax = rbp - offset ; address calculation
+    fprintf(fp, " sub rax, %d\n", node->offset);
+    push(fp, "rax");
+    fprintfd(fp, "# gen lvar's addr end\n");
+  } else {
     error("left value of assigning is not variable");
   }
-  // rax = rbp
-  fprintf(fp, " mov rax, rbp\n");
-  // calculating address of local variable by using offset in stack from rbp
-  // rax = rbp - offset ; address calculation
-  fprintf(fp, " sub rax, %d\n", node->offset);
-  push(fp, "rax");
-  fprintfd(fp, "# gen lvar's addr end\n");
 }
 
 static int label_index = 0;

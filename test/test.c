@@ -10,6 +10,8 @@ int main() {
   assert(7, 0, test7(91));
   assert(7, 1, test7(109));
   assert(8, 3, test8());
+  assert(9, 10, test9());
+  assert(10, 3, test10());
 
   print_ok();
   return 0;
@@ -88,9 +90,34 @@ int test7(int n) {
 int test8() {
   int x;
   x = 3;
-  int y;
+  int *y;
   y = &x;
   return *y;
+}
+
+int test9() {
+  int x;
+  x = 5;
+  int y;
+  y = 10;
+  int *px;
+  int *py;
+  px = &x;
+  py = &y;
+  int **z;
+  z = &px;
+  if (**z == 5) {
+    *z = py;
+  }
+  return **z;
+}
+
+int test10() {
+  int x;
+  int *y;
+  y = &x;
+  *y = 3;
+  return x;
 }
 
 int add(int x, int y) { return x + y; }

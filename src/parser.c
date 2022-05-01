@@ -16,6 +16,8 @@ static Node *parse_mul();
 static Node *parse_unary();
 static Node *parse_primary();
 
+static Type *parse_type();
+
 static Node *create_ident_node(Token *token, NodeKind kind);
 
 // Create Specified kind, lhs, rhs node. Returns the created node
@@ -57,7 +59,7 @@ LVar *find_lvar(Token *tok) {
 
 // Create and return local variable Node
 // Currently name is used for calculating offset from rbp
-Node *new_node_local_variable(Token *tok) {
+Node *new_node_local_variable(Type *type, Token *tok) {
   token_printd(tok);
   assertd(tok->kind == TK_IDENT);
   Node *node = calloc(1, sizeof(Node));
@@ -78,12 +80,14 @@ Node *new_node_local_variable(Token *tok) {
   lvar->next = locals;
   lvar->name = tok->str;
   lvar->len = tok->len;
+  lvar->type = type;
   if (locals == NULL) {
     lvar->offset = 8;
   } else {
     lvar->offset = locals->offset + 8;
   }
   node->offset = lvar->offset;
+  node->type = lvar->type;
   // set lvar head of locals
   locals = lvar;
   printk("FINISH CREATE LVAR\n");
@@ -111,6 +115,7 @@ Node *get_lvar(Token *tok) {
   }
   // Treat node as lvar
   node->offset = lvar->offset;
+  node->type = lvar->type;
   return node;
 }
 
@@ -139,13 +144,13 @@ static Node *parse_func() {
   if (!consume_op(")")) {
     // "int" <ident> ("," "int" <ident>)*
     expect_token(TK_INT);
-    node->first_arg = new_node_local_variable(consume_ident());
+    node->first_arg = new_node_local_variable(parse_type(), consume_ident());
     arg_count++;
     Node *tail = node->first_arg;
     while (consume_op(",")) {
       arg_count++;
       expect_token(TK_INT);
-      tail->next = new_node_local_variable(consume_ident());
+      tail->next = new_node_local_variable(parse_type(), consume_ident());
       tail = tail->next;
     }
     expect(")");
@@ -240,13 +245,34 @@ Node *parse_stmt() {
   return node;
 }
 
+static Type *parse_type() {
+  Type *type = calloc(1, sizeof(Type));
+  if (consume_op("*")) {
+    type->ty = PTR;
+  } else {
+    type->ty = INT;
+    return type;
+  }
+  Type *watching = type->ptr_to;
+  watching = calloc(1, sizeof(Type));
+  while (consume_op("*")) {
+    watching->ty = PTR;
+    watching = watching->ptr_to;
+    watching = calloc(1, sizeof(Type));
+  }
+  assertd(watching != NULL);
+  watching->ty = INT;
+  return type;
+}
+
 Node *parse_expr() {
   // <assign> | "int" <expr> ";"
   printk("===parse_expr===\n");
   if (consume(TK_INT)) {
     printk("NEW LOCAL VARIABLE\n");
     Node *node =
-        new_node(ND_DECLARE, new_node_local_variable(consume_ident()), NULL);
+        new_node(ND_DECLARE,
+                 new_node_local_variable(parse_type(), consume_ident()), NULL);
     printk("==parse_expr=====\n");
     return node;
   }
@@ -360,6 +386,10 @@ static Node *parse_unary() {
   } else if (consume_op("*")) {
     // "*" <unary>
     Node *node = new_node(ND_DEREF, parse_unary(), NULL);
+    Node *watching = node;
+    while (watching->kind != ND_LVAR)
+      watching = watching->lhs;
+    assert(watching->type->ty == PTR);
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("&")) {
