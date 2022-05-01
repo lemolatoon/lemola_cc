@@ -273,6 +273,19 @@ static void generate_expr(FILE *fp, Node *node) {
   case ND_CALLFUNC:
     generate_call_func(fp, node);
     return;
+  case ND_ADDR:
+    assertd(node->lhs != NULL);
+    generate_left_value(fp, node->lhs);
+    return;
+  case ND_DEREF:
+    fprintfd(fp, "# deref\n");
+    assertd(node->lhs != NULL);
+    generate_expr(fp, node->lhs);
+    fprintf(fp, " pop rax\n");
+    fprintf(fp, " mov rax, [rax]\n");
+    fprintf(fp, " push rax\n");
+    fprintfd(fp, "# deref end\n");
+    return;
   }
 
   // binary expr

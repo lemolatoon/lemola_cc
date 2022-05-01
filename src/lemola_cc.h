@@ -42,6 +42,8 @@ typedef enum {
   ND_BLOCKSTMT, // { <stmt>* }
   ND_CALLFUNC,  // function call
   ND_FUNCDEF,   // definition of function
+  ND_ADDR,      // & <unary>(in lhs)
+  ND_DEREF,     // * <unary>(in lhs)
 } NodeKind;
 
 typedef struct Node Node;

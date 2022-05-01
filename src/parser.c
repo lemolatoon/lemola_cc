@@ -308,13 +308,25 @@ static Node *parse_unary() {
   // ("+" | "-")? primary
   printk("===parse_unary===\n");
   if (consume_op("+")) {
+    // "+" <primary>
     // `+a` is same as just `a`
     Node *node = parse_primary();
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("-")) {
+    // "-" <primary>
     // `-a` is same as `0 - a`
     Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
+    printk("===parse_unary=====\n");
+    return node;
+  } else if (consume_op("*")) {
+    // "*" <unary>
+    Node *node = new_node(ND_DEREF, parse_unary(), NULL);
+    printk("===parse_unary=====\n");
+    return node;
+  } else if (consume_op("&")) {
+    // "&" <unary>
+    Node *node = new_node(ND_ADDR, parse_unary(), NULL);
     printk("===parse_unary=====\n");
     return node;
   } else {

@@ -7,6 +7,9 @@ main() {
   assert(5, 10, test5(5));
   assert(6, 2, test6(2));
   assert(7, 0, test7(1));
+  assert(7, 0, test7(91));
+  assert(7, 1, test7(109));
+  assert(8, 3, test8());
 
   print_ok();
   return 0;
@@ -77,6 +80,12 @@ test7(n) {
     }
   }
   return result;
+}
+
+test8() {
+  x = 3;
+  y = &x;
+  return *y;
 }
 
 add(x, y) { return x + y; }

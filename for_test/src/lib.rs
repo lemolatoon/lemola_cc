@@ -22,6 +22,8 @@ enum NodeKind {
     ND_BLOCKSTMT, // { <stmt>* }
     ND_CALLFUNC,  // function call
     ND_FUNCDEF,   // definition of function
+    ND_ADDR,      // & <unary>
+    ND_DEREF,     // * <unary>
 }
 
 #[repr(C)]
@@ -93,13 +95,6 @@ impl<'a> Node<'a> {
         //     None
         // }
     }
-}
-
-macro_rules! debug_struct_next {
-    ($self:ident, $f:ident, $next:expr) => {};
-}
-macro_rules! debug_struct_next_none {
-    ($self:ident, $f:ident) => {};
 }
 
 use std::{
@@ -197,6 +192,12 @@ impl Debug for Node<'_> {
                     .field("first_arg", unsafe { &self.first_arg.as_ref() })
                     .field("then", &self.then)
                     .finish(),
+                ND_ADDR | ND_DEREF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("next", next)
+                    .finish(),
                 _ => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
@@ -278,6 +279,11 @@ impl Debug for Node<'_> {
                     .field("arg_count", &self.arg_count)
                     .field("first_arg", unsafe { &self.first_arg.as_ref() })
                     .field("then", &self.then)
+                    .finish(),
+                ND_ADDR | ND_DEREF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
                     .finish(),
                 _ => f
                     .debug_struct("Node")
