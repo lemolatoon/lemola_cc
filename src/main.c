@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   FILE *target_pointer = fopen("src.s", "w");
 
   // buffer
-  const SIZE = 1048576;
+  const int SIZE = 1048576;
   char s[SIZE];
   char *buf_ptr = &s[0];
   while (fgets(buf_ptr, SIZE - (buf_ptr - &s[0]), source_pointer) != NULL) {
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   assertd(code[0] != NULL);
   for (int i = 0; code[i] != NULL; i++) {
     ast_printd(code[i]);
-    generate_assembly(target_pointer, code[i]);
+    generate_head(target_pointer, code[i]);
 
     // // pop result of evaluation of the last expression
     // fprintf(target_pointer, " pop rax\n");

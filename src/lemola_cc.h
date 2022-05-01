@@ -163,7 +163,7 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-void generate_assembly(FILE *fp, Node *node);
+void generate_head(FILE *fp, Node *node);
 void get_exit(FILE *fp);
 // -------------code_gen---------------
 
