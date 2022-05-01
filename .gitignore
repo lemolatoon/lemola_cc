@@ -1,10 +1,12 @@
 # User Defined
 src.c
+src2.c
 link.c
 src.s
 a.out
 lemola_cc
 tmp.c
+tmp.s
 
 # under test/
 test/tmp

@@ -41,6 +41,7 @@ typedef enum {
   ND_RETURN,    // return
   ND_BLOCKSTMT, // { <stmt>* }
   ND_CALLFUNC,  // function call
+  ND_FUNCDEF,   // definition of function
 } NodeKind;
 
 typedef struct Node Node;
@@ -54,13 +55,16 @@ struct Node {
   Node *initialization; // for
   Node *increment;      // for
   Node *els;            // else
-  Node *then;           // if or while or for
+  Node *then;           // if or while or for or ND_FUNCDEF
 
   // when(kind == ND_BLOCKSTMT) next := next stmt node (<stmt>)
   // when(kind == Any && parsing block stmt) next := next_statement
-  // when(kind == ND_CALLFUNC) next := first arg(<expr>)
   // when(kind == Any && parsing func argument) next := next_argument
   Node *next;
+
+  // when(kind == ND_CALLFUNC) next := first arg(<expr>)
+  // when(kind == ND_FUNCDEF) next := first arg(<ident>)
+  Node *first_arg;
 
   char *name; // when (kind == ND_CALLFUNC)
 
@@ -86,7 +90,7 @@ struct LVar {
 
 // Ensure to access after calling `parse_program()`.
 // The last element will be set NULL.
-extern Node *code[100];
+extern Node *code[1000];
 
 void parse_program();
 
@@ -159,7 +163,7 @@ Token *tokenize(char *p);
 // -------------Tokenizer--------------
 
 // -------------code_gen---------------
-void generate_assembly(FILE *fp, Node *node);
+void generate_head(FILE *fp, Node *node);
 void get_exit(FILE *fp);
 // -------------code_gen---------------
 

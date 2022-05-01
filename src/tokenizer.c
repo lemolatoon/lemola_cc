@@ -203,7 +203,7 @@ Token *tokenize(char *p) {
 
     // Identifier or Reserved words
     // possible characters that can be beside indent
-    char *white_ptr = strpbrk(p, " \n\t=;()}");
+    char *white_ptr = strpbrk(p, " \n\t=;,()}");
     int len = white_ptr - p;
     if (len >= 1) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return

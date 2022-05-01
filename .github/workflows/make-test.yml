@@ -18,4 +18,5 @@ jobs:
       run: make lemola_cc
 
     - name: test
-      run: make test
+      run: make test_all
+

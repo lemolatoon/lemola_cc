@@ -14,9 +14,10 @@ int main(int argc, char **argv) {
   FILE *target_pointer = fopen("src.s", "w");
 
   // buffer
-  char s[1024];
+  const int SIZE = 1048576;
+  char s[SIZE];
   char *buf_ptr = &s[0];
-  while (fgets(buf_ptr, 1024 - (buf_ptr - &s[0]), source_pointer) != NULL) {
+  while (fgets(buf_ptr, SIZE - (buf_ptr - &s[0]), source_pointer) != NULL) {
     buf_ptr = buf_ptr + strlen(buf_ptr);
     *buf_ptr = (char)0;
   };
@@ -33,29 +34,19 @@ int main(int argc, char **argv) {
 
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
-  fprintf(target_pointer, ".global main\n");
-  fprintf(target_pointer, "main:\n");
 
   printk("===========code_gen================\n");
-  // prologue
-  fprintf(target_pointer, " push rbp\n");
-  fprintf(target_pointer, " mov rbp, rsp\n");
-  // reserve 26 local variables in advance
-  fprintf(target_pointer, " sub rsp, %d\n", 8 * 26);
 
+  assertd(code[0] != NULL);
   for (int i = 0; code[i] != NULL; i++) {
     ast_printd(code[i]);
-    generate_assembly(target_pointer, code[i]);
-    // pop result of evaluation of the last expression
-    fprintf(target_pointer, " pop rax\n");
+    generate_head(target_pointer, code[i]);
+
+    // // pop result of evaluation of the last expression
+    // fprintf(target_pointer, " pop rax\n");
   }
   // generate assembly while getting down AST(Abstract Syntax Tree)
   printk("===========code_gen end=============\n");
 
-  // revert stack pointer (rsp)
-  fprintf(target_pointer, " mov rsp, rbp\n");
-  // revert base pointer (rbp)
-  fprintf(target_pointer, " pop rbp\n");
-  fprintf(target_pointer, " ret\n");
   return 0;
 }
