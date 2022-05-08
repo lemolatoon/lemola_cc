@@ -52,8 +52,12 @@ typedef struct Type Type;
 
 struct Node {
   NodeKind kind; // type of Node
-  Node *lhs;     // left hand side
-  Node *rhs;     // right hand side
+  // when binary expr
+  // when ND_DEREF
+  Node *lhs; // left hand side
+
+  // when binary expr
+  Node *rhs; // right hand side
 
   Node *condition;      // if or while or for
   Node *initialization; // for
@@ -81,7 +85,10 @@ struct Node {
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
-  Type *type; // when(kind == ND_LVAR): type of lvar
+
+  // when(kind == ND_LVAR): type of lvar
+  // when(kind == ND_NUM): type of literal
+  Type *type;
 };
 
 typedef struct LVar LVar;
@@ -94,9 +101,14 @@ struct LVar {
   Type *type; // type of lvar
 };
 
+typedef enum {
+  INT,
+  PTR,
+} TypeKind;
+
 struct Type {
-  enum { INT, PTR } ty; // pointer or int
-  struct Type *ptr_to;  // when(ty==PTR), type is the pointer to `ptr_to`
+  TypeKind ty;         // pointer or int
+  struct Type *ptr_to; // when(ty==PTR), type is the pointer to `ptr_to`
 };
 
 // Ensure to access after calling `parse_program()`.
@@ -192,11 +204,13 @@ void ast_print(Node *node);
 void hello();
 void token_print(Token *token);
 void lvar_print(LVar *lvar);
+void type_print(Type *type);
 
 #define ast_printd(node) ast_print(node)
 #define hellod() hello()
 #define token_printd(token) token_print(token)
 #define lvar_printd(lvar) lvar_print(lvar)
+#define type_printd(type) type_print(type)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -210,4 +224,12 @@ void lvar_print(LVar *lvar);
 #define lvar_printd(token)                                                     \
   do {                                                                         \
   } while (0)
+#define type_printd(token)                                                     \
+  do {                                                                         \
+  } while (0)
 #endif
+
+#define _STR(x) #x
+#define _STR2(x) _STR(x)
+#define __SLINE__ _STR2(__LINE__)
+#define HERE __FILE__ "(" __SLINE__ ")"

@@ -12,6 +12,8 @@ int main() {
   assert(8, 3, test8());
   assert(9, 10, test9());
   assert(10, 3, test10());
+  assert(11, 0, test11());
+  assert(12, 0, test12());
 
   print_ok();
   return 0;
@@ -118,6 +120,47 @@ int test10() {
   y = &x;
   *y = 3;
   return x;
+}
+
+int test11() {
+  int *p;
+  p = alloc4(2, 3, 5, 8);
+  int *q;
+  q = p + 2;
+  assert(11, 5, *q);
+  q = p + 3;
+  assert(11, 8, *q);
+  return 0;
+}
+
+int test12() {
+  int a;
+  int b;
+  int c;
+  int d;
+  a = 1;
+  b = 2;
+  c = 3;
+  d = 4;
+  int **p;
+  p = alloc4_ptr(&a, &b, &c, &d);
+  assert(12, 1, **p);
+  p = p + 2;
+  assert(12, 3, **p);
+  p = p - 2;
+  int *d2;
+  d2 = *(p + 3);
+  assert(12, 4, *d2);
+  assert(12, 4, **(p + 3));
+  **(p + 3) = 9;
+  assert(12, 9, **(p + 3));
+  int *q;
+  int e;
+  e = 1;
+  q = &e;
+  *q = **p + **(p + 1) + **(p + 2) - **(p + 3);
+  assert(12, -3, *q);
+  return 0;
 }
 
 int add(int x, int y) { return x + y; }

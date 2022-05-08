@@ -39,6 +39,8 @@ Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->value = val;
+  node->type = calloc(1, sizeof(Type));
+  node->type->ty = INT;
   return node;
 }
 
@@ -160,10 +162,12 @@ static Node *parse_func() {
   printk("arg_count:%d\n", arg_count);
   if (arg_count > 6) {
     ast_printd(node);
-    printf("In order to see constructed AST, enable RustDebug, which needs "
-           "definition of RUSTD\n");
-    printf("currently more than 6 function arguments is not supported\n");
-    exit(0);
+    fprintf(stderr,
+            "In order to see constructed AST, enable RustDebug, which needs "
+            "definition of RUSTD\n");
+    fprintf(stderr,
+            "currently more than 6 function arguments is not supported\n");
+    exit(1);
   }
   node->then = parse_stmt();
   printk("=============parse_func=========\n");
@@ -246,22 +250,33 @@ Node *parse_stmt() {
 }
 
 static Type *parse_type() {
+  printk("\033[31mNEXT NODE\033[0m\n");
+  token_printd(token);
   Type *type = calloc(1, sizeof(Type));
+
   if (consume_op("*")) {
     type->ty = PTR;
+    printk("\033[31mPTR!!\033[0m\n");
   } else {
     type->ty = INT;
+    type_printd(type);
     return type;
   }
+  type->ptr_to = calloc(1, sizeof(Type));
   Type *watching = type->ptr_to;
-  watching = calloc(1, sizeof(Type));
+  assertd(watching != NULL);
   while (consume_op("*")) {
     watching->ty = PTR;
+    assertd(watching->ty == PTR);
+    watching->ptr_to = calloc(1, sizeof(Type));
     watching = watching->ptr_to;
-    watching = calloc(1, sizeof(Type));
   }
   assertd(watching != NULL);
   watching->ty = INT;
+  assertd(type->ty == PTR);
+  printk("%d\n", type->ty);
+  assertd(type != NULL);
+  type_printd(type);
   return type;
 }
 
@@ -287,7 +302,9 @@ Node *parse_assign() {
   Node *node = parse_equality();
   if (consume_op("=")) {
     // "=" <assign>
-    node = new_node(ND_ASSIGN, node, parse_assign());
+    Node *rhs = parse_assign();
+    // assert(node->type == rhs->type);
+    node = new_node(ND_ASSIGN, node, rhs);
     printk("===parse_assign===\n");
     return node;
   }

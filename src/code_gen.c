@@ -12,6 +12,15 @@ static void generate_left_value(FILE *fp, Node *node);
 // depth of rsp
 static int depth = 0;
 
+int size_of(Type *type) {
+  switch (type->ty) {
+  case INT:
+    return 4;
+  case PTR:
+    return 8;
+  }
+}
+
 void generate_head(FILE *fp, Node *node) {
   assertd(node->kind == ND_FUNCDEF);
   generate_funcdef(fp, node);
@@ -84,11 +93,15 @@ static void generate_funcdef(FILE *fp, Node *node) {
 
 // Calculate address of left value and push it
 static void generate_left_value(FILE *fp, Node *node) {
-  fprintfd(fp, "# gen lvar's addr\n");
   if (node->kind == ND_DEREF) {
+    fprintfd(fp, "# gen deref's addr\n");
+    ast_printd(node);
+    assertd(node->lhs != NULL);
     generate_expr(fp, node->lhs);
+    fprintfd(fp, "# gen deref's addr end\n");
     return;
   } else if (node->kind == ND_LVAR) {
+    fprintfd(fp, "# gen lvar's addr\n");
     // rax = rbp
     fprintf(fp, " mov rax, rbp\n");
     // calculating address of local variable by using offset in stack from rbp
@@ -264,6 +277,10 @@ static void generate_expr(FILE *fp, Node *node) {
     return;
   case ND_ASSIGN:
     generate_left_value(fp, node->lhs);
+    printk("\033[31m");
+    printk("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    printk("\033[0m\n");
+    ast_printd(node->lhs);
     generate_expr(fp, node->rhs); // <assign>
 
     pop(fp, "rdi"); // right value
@@ -283,6 +300,7 @@ static void generate_expr(FILE *fp, Node *node) {
   case ND_DEREF:
     fprintfd(fp, "# deref\n");
     assertd(node->lhs != NULL);
+    ast_printd(node);
     generate_expr(fp, node->lhs);
     fprintf(fp, " pop rax\n");
     fprintf(fp, " mov rax, [rax]\n");
@@ -291,13 +309,43 @@ static void generate_expr(FILE *fp, Node *node) {
     return;
   case ND_DECLARE:
     node->rhs = new_node_num(0); // init value
+    node->rhs->type = node->lhs->type;
     generate_expr(fp, new_node(ND_ASSIGN, node->lhs, node->rhs));
     return;
   }
 
   // binary expr
-  generate_expr(fp, node->lhs);
-  generate_expr(fp, node->rhs);
+
+  if ((node->kind == ND_ADD || node->kind == ND_SUB)) {
+    fprintfd(fp, "# ptr add or sub\n");
+    if ((node->lhs->kind == ND_LVAR && node->lhs->type->ty == PTR)) {
+      generate_expr(fp, node->lhs);
+      ast_printd(node);
+      Node *expr = new_node(ND_MUL, node->rhs,
+                            new_node_num(size_of(node->lhs->type->ptr_to)));
+      expr->type = calloc(1, sizeof(Type));
+      expr->type->ty = PTR;
+      expr->type->ptr_to = node->lhs->type->ptr_to;
+      // TODO: clone above
+      generate_expr(fp, expr);
+    } else if ((node->rhs->kind == ND_LVAR && node->rhs->type->ty == PTR)) {
+      generate_expr(fp, node->rhs);
+      ast_printd(node);
+      Node *expr = new_node(ND_MUL, node->lhs,
+                            new_node_num(size_of(node->rhs->type->ptr_to)));
+      expr->type = calloc(1, sizeof(Type));
+      expr->type->ty = PTR;
+      expr->type->ptr_to->ty = node->rhs->type->ptr_to;
+      generate_expr(fp, expr);
+    } else {
+      generate_expr(fp, node->lhs);
+      generate_expr(fp, node->rhs);
+    }
+    fprintfd(fp, "# ptr add or sub end\n");
+  } else {
+    generate_expr(fp, node->lhs);
+    generate_expr(fp, node->rhs);
+  }
 
   pop(fp, "rdi");
   pop(fp, "rax");

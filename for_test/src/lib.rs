@@ -49,6 +49,7 @@ pub struct Node<'a> {
 
     value: c_int,
     offset: c_int,
+    type_: &'a Type<'a>,
 }
 
 impl<'a> Node<'a> {
@@ -115,12 +116,14 @@ impl Debug for Node<'_> {
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("value", &self.value)
+                    .field("type", &self.type_)
                     .field("next", next)
                     .finish(),
                 ND_LVAR => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("offset", &self.offset)
+                    .field("type", &self.type_)
                     .field("next", next)
                     .finish(),
                 ND_RETURN => f
@@ -220,11 +223,13 @@ impl Debug for Node<'_> {
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("value", &self.value)
+                    .field("type", &self.type_)
                     .finish(),
                 ND_LVAR => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("offset", &self.offset)
+                    .field("type", &self.type_)
                     .finish(),
                 ND_RETURN => f
                     .debug_struct("Node")
@@ -317,7 +322,7 @@ pub extern "C" fn hello() {
 
 #[no_mangle]
 pub extern "C" fn ast_print(node: &Node) {
-    println!("{:?}", node);
+    println!("{:#?}", node);
 }
 
 // token
@@ -399,6 +404,7 @@ pub struct LVar<'a> {
     name: &'a c_char,
     len: c_int,
     offset: c_int,
+    type_: &'a Type<'a>,
 }
 
 impl Debug for LVar<'_> {
@@ -409,11 +415,46 @@ impl Debug for LVar<'_> {
                 .field("name", &self.name)
                 .field("len", &self.len)
                 .field("offset", &self.offset)
+                .field("type", &self.type_)
                 .finish()
         } else {
             f.debug_struct("LVar is NULL").finish()
         }
     }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+enum TypeKind {
+    INT,
+    PTR,
+}
+
+#[repr(C)]
+pub struct Type<'a> {
+    ty: TypeKind,
+    ptr_to: &'a Type<'a>,
+}
+
+impl<'a> Debug for Type<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        assert!(!(self as *const Type<'_>).is_null());
+        match self.ty {
+            TypeKind::INT => f.debug_struct("Type").field("ty", &self.ty).finish(),
+            TypeKind::PTR => f
+                .debug_struct("Type")
+                .field("ty", &self.ty)
+                .field("ptr_to", &self.ptr_to)
+                .finish(),
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn type_print(type_: &Type<'_>) {
+    // assert!(!type_.is_null());
+    // let type_: &Type<'_> = unsafe { type_.as_ref().unwrap() };
+    println!("{:?}", type_);
 }
 
 #[no_mangle]

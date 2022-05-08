@@ -56,8 +56,8 @@ test_old: lemola_cc
 test: lemola_cc test/test.c test/test_utils.c
 	cd test && \
 		../lemola_cc test.c && \
-		$(CC) -c test_utils.c && \
-		$(CC) src.s test_utils.o -o tmp && \
+		$(CC)  -c test_utils.c -g3 && \
+		$(CC)  src.s test_utils.o -o tmp -g3 && \
 		./tmp
 
 test3: lemola_cc test/test3.c test/test.c test/test_utils.c
