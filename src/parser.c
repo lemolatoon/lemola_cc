@@ -32,6 +32,7 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   node->rhs = rhs;
   printk("kind: %d, value: %d\n", node->kind, node->value);
   return node;
+  ast_printd(node);
 }
 
 // Create and return `Node {kind: ND_NUM, value: val}`
@@ -233,11 +234,19 @@ Node *parse_stmt() {
     node->kind = ND_BLOCKSTMT;
     Node *linking_node;
     linking_node = node;
+    assert(!(linking_node == NULL));
+    ast_printd(linking_node);
     while (!consume_op("}")) {
       linking_node->next = parse_stmt();
       linking_node = linking_node->next;
     }
     return node;
+  } else if (consume(TK_INT)) {
+    printk("NEW LOCAL VARIABLE\n");
+    node =
+        new_node(ND_DECLARE,
+                 new_node_local_variable(parse_type(), consume_ident()), NULL);
+    expect(";");
   } else {
     // <expr> ";"
     node = parse_expr();
@@ -245,7 +254,10 @@ Node *parse_stmt() {
   }
 
   printk("===parse_stmt===\n");
-  ast_printd(node);
+  if (node == NULL) {
+    printk("DECLARE\n");
+  }
+  // ast_printd(node);
   return node;
 }
 
@@ -281,17 +293,16 @@ static Type *parse_type() {
 }
 
 Node *parse_expr() {
-  // <assign> | "int" <expr> ";"
+  // <assign>
   printk("===parse_expr===\n");
-  if (consume(TK_INT)) {
-    printk("NEW LOCAL VARIABLE\n");
-    Node *node =
-        new_node(ND_DECLARE,
-                 new_node_local_variable(parse_type(), consume_ident()), NULL);
-    printk("==parse_expr=====\n");
-    return node;
-  }
   Node *node = parse_assign();
+  assert(!(node == NULL));
+  ast_printd(node);
+  ast_printd(node);
+  ast_printd(node);
+  assertd(node->type != NULL);
+  // assign return rhs of assign expr
+  // and its type is same as lhs
   printk("==parse_expr=====\n");
   return node;
 }
@@ -305,6 +316,10 @@ Node *parse_assign() {
     Node *rhs = parse_assign();
     // assert(node->type == rhs->type);
     node = new_node(ND_ASSIGN, node, rhs);
+    ast_printd(node);
+    assertd(node->rhs->type != NULL);
+    node->lhs->type = node->rhs->type;
+    node->type = node->lhs->type;
     printk("===parse_assign===\n");
     return node;
   }
@@ -320,8 +335,12 @@ static Node *parse_equality() {
   for (;;) {
     if (consume_op("==")) {
       node = new_node(ND_EQ, node, parse_relational());
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op("!=")) {
       node = new_node(ND_NEQ, node, parse_relational());
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else {
       printk("==parse_eq=====\n");
       return node;
@@ -336,14 +355,22 @@ static Node *parse_relational() {
   for (;;) {
     if (consume_op("<")) {
       node = new_node(ND_SMALLER, node, parse_add());
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op("<=")) {
       node = new_node(ND_SMALLEREQ, node, parse_add());
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op(">")) {
       // reverse args and reverse op (`>` -> `<`)
       node = new_node(ND_SMALLER, parse_add(), node);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op(">=")) {
       // reverse args and reverse op (`>=` -> `<=`)
       node = new_node(ND_SMALLEREQ, parse_add(), node);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else {
       printk("===prase_relational=====\n");
       return node;
@@ -358,8 +385,47 @@ static Node *parse_add() {
   for (;;) {
     if (consume_op("+")) {
       node = new_node(ND_ADD, node, parse_mul());
+      printk("%d\n", node->rhs);
+      printk("%d\n", node->lhs);
+      printk("%d\n", node->rhs->type);
+      printk("%d\n", node->lhs->type);
+      ast_printd(node->lhs);
+      ast_printd(node);
+      // type check (rhs->type == lhs->type) deep equal
+      if (node->lhs->type->ty != PTR && node->rhs->type->ty != PTR) {
+        assert(node->rhs->type->ty == node->lhs->type->ty);
+        node->type = node->rhs->type;
+      } else if (node->lhs->type->ty == PTR) { // p + 2
+        assert(node->rhs->type->ty == INT);    // rhs: int
+        node->type = node->lhs->type;          // lhs: ptr
+      } else if (node->rhs->type->ty == PTR) { // 3 + p
+        assert(node->lhs->type->ty == INT);    // lhs: int
+        node->type = node->rhs->type;          // rhs: ptr
+      } else {
+        error("Unreachable if statement at " HERE);
+      }
+      printk(HERE "!!!!!!!\n");
+      type_printd(node->type);
+
     } else if (consume_op("-")) {
       node = new_node(ND_SUB, node, parse_mul());
+      // type check (rhs->type == lhs->type) deep equal
+      if (node->lhs->type->ty != PTR && node->rhs->type->ty != PTR) {
+        assert(node->rhs->type->ty == node->lhs->type->ty);
+        node->type = node->rhs->type;
+      } else if (node->lhs->type->ty == PTR) { // p - 2
+        assert(node->rhs->type->ty == INT);    // rhs: int
+        node->type = node->lhs->type;          // lhs: ptr
+      } else if (node->rhs->type->ty == PTR) { // -3 + p
+        assert(node->lhs->type->ty == INT);    // lhs: int
+        node->type = node->lhs->type;          // rhs: ptr
+      } else {
+        error("Unreachable if statement at " HERE);
+      }
+      printk(HERE "!!!!!!!\n");
+      type_printd(node->type);
+      assertd(node->type != NULL);
+
     } else {
       printk("===parse_add=====\n");
       return node;
@@ -374,10 +440,29 @@ static Node *parse_mul() {
   for (;;) {
     if (consume_op("*")) {
       node = new_node(ND_MUL, node, parse_unary());
+      printk("%d\n", node->rhs);
+      printk("%d\n", node->lhs);
+      printk("%d\n", node->rhs->type);
+      printk("%d\n", node->lhs->type);
+      ast_printd(node->rhs);
+      ast_printd(node->lhs);
+
+      // ptr cannot be mul
+      assert(node->rhs->type->ty != PTR && node->lhs->type->ty != PTR);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op("/")) {
       node = new_node(ND_DIV, node, parse_unary());
+      // ptr cannot be div
+      assert(node->rhs->type->ty != PTR && node->lhs->type->ty != PTR);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else if (consume_op("%")) {
       node = new_node(ND_REST, node, parse_unary());
+      // ptr cannot be mod
+      assert(node->rhs->type->ty != PTR && node->lhs->type->ty != PTR);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = INT;
     } else {
       printk("===parse_mul=====\n");
       return node;
@@ -388,7 +473,12 @@ static Node *parse_mul() {
 static Node *parse_unary() {
   // ("+" | "-")? primary
   printk("===parse_unary===\n");
-  if (consume_op("+")) {
+  if (consume(TK_SIZEOF)) {
+    // TODO: check type and replace const.
+    Node *node = parse_unary();
+    assertd(node->type);
+    return new_node_num(size_of(node->type));
+  } else if (consume_op("+")) {
     // "+" <primary>
     // `+a` is same as just `a`
     Node *node = parse_primary();
@@ -398,21 +488,26 @@ static Node *parse_unary() {
     // "-" <primary>
     // `-a` is same as `0 - a`
     Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
+    node->type = node->lhs->type;
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("*")) {
     // "*" <unary>
     Node *node = new_node(ND_DEREF, parse_unary(), NULL);
-    Node *watching = node;
-    while (watching->kind != ND_LVAR)
-      watching = watching->lhs;
-    assert(watching->type->ty == PTR);
+    ast_printd(node);
+    assert(node->lhs->type->ty == PTR);
+    node->type = node->lhs->type->ptr_to;
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("&")) {
     // "&" <unary>
     Node *node = new_node(ND_ADDR, parse_unary(), NULL);
+    node->type = calloc(1, sizeof(Type));
+    node->type->ty = PTR;
+    assertd(node->lhs->type != NULL);
+    node->type->ptr_to = node->lhs->type;
     printk("===parse_unary=====\n");
+    ast_printd(node);
     return node;
   } else {
     Node *node = parse_primary();
@@ -436,15 +531,23 @@ Node *parse_primary() {
   // <num>
   if (peek_number()) {
     Node *node = new_node_num(expect_number());
+    // number literal is all int
+    node->type = calloc(1, sizeof(Type));
+    node->type->ty = INT;
     printk("===parse_primary=====\n");
     return node;
   }
 
   // <ident> ("(" ")")?
+  printk("this\n");
   Token *token = consume_ident();
   if (consume_op("(")) {
     // function call
     Node *node = create_ident_node(token, ND_CALLFUNC);
+    // TODO: support other than `int` type of function
+    node->type = calloc(1, sizeof(Type));
+    node->type->ty = INT;
+
     int arg_count = 0;
     if (!consume_op(")")) {
       // <expr> ("," <expr>)*

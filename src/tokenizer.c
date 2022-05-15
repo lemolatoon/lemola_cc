@@ -232,6 +232,8 @@ Token *tokenize(char *p) {
         current_token = new_token(TK_ELSE, current_token, p, white_ptr);
       } else if (len == 3 && !strncmp(p, "int", 3)) {
         current_token = new_token(TK_INT, current_token, p, white_ptr);
+      } else if (len == 6 && !strncmp(p, "sizeof", 6)) {
+        current_token = new_token(TK_SIZEOF, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);
       }

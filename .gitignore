@@ -7,6 +7,7 @@ a.out
 lemola_cc
 tmp.c
 tmp.s
+log
 
 # under test/
 test/tmp

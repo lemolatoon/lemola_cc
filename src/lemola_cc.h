@@ -141,6 +141,7 @@ typedef enum {
   TK_ELSE,     // else
   TK_NUM,      // number literal
   TK_INT,      // int
+  TK_SIZEOF,   // sizeof
   TK_EOF,      // End of File
 } TokenKind;
 
@@ -194,6 +195,9 @@ Token *tokenize(char *p);
 void generate_head(FILE *fp, Node *node);
 void get_exit(FILE *fp);
 void dynprint(FILE *fp, char *head, int len);
+
+// return sizeof(T)
+int size_of(Type *type);
 // -------------code_gen---------------
 
 // ---------------utils----------------

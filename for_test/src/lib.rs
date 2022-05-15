@@ -200,6 +200,7 @@ impl Debug for Node<'_> {
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
+                    .field("type", &self.type_.get())
                     .field("next", next)
                     .finish(),
                 ND_DECLARE => f
@@ -214,6 +215,7 @@ impl Debug for Node<'_> {
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
                     .field("rhs", &self.rhs)
+                    .field("type", &self.type_.get())
                     .field("next", next)
                     .finish(),
             }
@@ -296,6 +298,7 @@ impl Debug for Node<'_> {
                 ND_ADDR | ND_DEREF => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
+                    .field("type", &self.type_.get())
                     .field("lhs", &self.lhs)
                     .finish(),
                 ND_DECLARE => f
@@ -309,6 +312,7 @@ impl Debug for Node<'_> {
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
                     .field("rhs", &self.rhs)
+                    .field("type", &self.type_.get())
                     .finish(),
             }
         }
@@ -322,7 +326,7 @@ pub extern "C" fn hello() {
 
 #[no_mangle]
 pub extern "C" fn ast_print(node: &Node) {
-    println!("{:#?}", node);
+    println!("{:?}", node);
 }
 
 // token
@@ -341,6 +345,7 @@ enum TokenKind {
     TK_ELSE,     // else
     TK_NUM,      // number literal
     TK_INT,      // int
+    TK_SIZEOF,   // sizeof
     TK_EOF,      // End of File
 }
 
@@ -446,6 +451,16 @@ impl<'a> Debug for Type<'a> {
                 .field("ty", &self.ty)
                 .field("ptr_to", &self.ptr_to)
                 .finish(),
+        }
+    }
+}
+
+impl Type<'_> {
+    fn get(&self) -> Option<&Self> {
+        if (self as *const Type<'_>).is_null() {
+            return None;
+        } else {
+            return unsafe { (self as *const Type<'_>).as_ref() };
         }
     }
 }

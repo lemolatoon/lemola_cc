@@ -6,14 +6,15 @@
                     | "while" "(" <expr> ")" <stmt>
                     | "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
                     | "return" <expr> ";"
+                    | "int" "*"* <ident> ";"
 <expr>          := <assign>
-                    | "int" "*"* <ident>
 <assign>        := <equality> ("=" <assign>)?
 <equality>      := <relational> ("==" <relational> | "!=" <relational>)*
 <relational>    := <add> ("<" <add> | "<=" <add> | ">" <add> | ">=" <add>)*
 <add>           := <mul> ("+" <mul> | "-" <mul>)* 
 <mul>           := <unary> ("*" <unary> | "/" <unary> | "%" <unary>)* 
-<unary>         := "+"? <primary> 
+<unary>         := "sizeof" <unary>
+                    | "+"? <primary> 
                     | "-"? <primary>
                     | "*" <unary>
                     | "&" <unary>
