@@ -1,23 +1,34 @@
-<program>       := <func>*
-<func>          := "int" "*"* <ident> ("(" ("int" "*"* <ident> ("," "int" "*"* <ident>)*)? ")")? <stmt>
-<stmt>          := <expr> ";" 
-                    | "{" <stmt>* "}"
-                    | "if" "(" <expr> ")" <stmt> ("else" <stmt>)?
-                    | "while" "(" <expr> ")" <stmt>
-                    | "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
-                    | "return" <expr> ";"
-                    | "int" "*"* <ident> ";"
-<expr>          := <assign>
-<assign>        := <equality> ("=" <assign>)?
-<equality>      := <relational> ("==" <relational> | "!=" <relational>)*
-<relational>    := <add> ("<" <add> | "<=" <add> | ">" <add> | ">=" <add>)*
-<add>           := <mul> ("+" <mul> | "-" <mul>)* 
-<mul>           := <unary> ("*" <unary> | "/" <unary> | "%" <unary>)* 
-<unary>         := "sizeof" <unary>
-                    | "+"? <primary> 
-                    | "-"? <primary>
-                    | "*" <unary>
-                    | "&" <unary>
-<primary>       := <num> 
-                    | <ident> ("(" (<expr> ("," <expr>)*)? ")")?
-                    | "(" <expr> ")"
+<program>                       := <func>*
+<func>                          := "int" "*"* <ident> ("(" ("int" "*"* <ident> ("," "int" "*"* <ident>)*)? ")")? <stmt>
+<stmt>                          := <expr> ";" 
+                                    | "{" <stmt>* "}"
+                                    | "if" "(" <expr> ")" <stmt> ("else" <stmt>)?
+                                    | "while" "(" <expr> ")" <stmt>
+                                    | "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
+                                    | "return" <expr> ";"
+                                    | <declaration> ";"
+
+<declaration>                   := <declaration-specifilers> <init-declarator>*
+<declaration-specifilers>       := <type-specifilers>
+<type-specifilers>              := "int"
+
+<init-declarator>               := <declarator>
+<declarator>                    := <pointer>? <direct-declarator>
+<direct-declarator>             := <identifier>
+                                    | <identifier> "[" <assign> "]"
+<pointer>                       := "*" <pointer>
+
+<expr>                          := <assign>
+<assign>                        := <equality> ("=" <assign>)?
+<equality>                      := <relational> ("==" <relational> | "!=" <relational>)*
+<relational>                    := <add> ("<" <add> | "<=" <add> | ">" <add> | ">=" <add>)*
+<add>                           := <mul> ("+" <mul> | "-" <mul>)* 
+<mul>                           := <unary> ("*" <unary> | "/" <unary> | "%" <unary>)* 
+<unary>                         := "sizeof" <unary>
+                                    | "+"? <primary> 
+                                    | "-"? <primary>
+                                    | "*" <unary>
+                                    | "&" <unary>
+<primary>                       := <num> 
+                                    | <ident> ("(" (<expr> ("," <expr>)*)? ")")?
+                                    | "(" <expr> ")"
