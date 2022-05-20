@@ -16,6 +16,8 @@ int main() {
   assert(12, 0, test12());
   assert(13, 0, test13());
 
+  test14();
+
   print_ok();
   return 0;
 }
@@ -101,16 +103,22 @@ int test8() {
 int test9() {
   int x;
   x = 5;
+  assert(9, 5, x);
   int y;
   y = 10;
+  assert(9, 10, y);
   int *px;
   int *py;
   px = &x;
   py = &y;
+  assert(9, 5, *px);
+  assert(9, 10, *py);
   int **z;
   z = &px;
+  assert(9, 5, **z);
   if (**z == 5) {
     *z = py;
+    assert(9, 10, **z);
   }
   return **z;
 }
@@ -131,6 +139,10 @@ int test11() {
   assert(11, 5, *q);
   q = p + 3;
   assert(11, 8, *q);
+
+  int *p2;
+  p2 = alloc4(1, 2, 3, 4);
+  assert(11, 4, *(3 + p2));
   return 0;
 }
 
@@ -177,6 +189,16 @@ int test13() {
 
   assert(13, 4, sizeof(1));
   assert(13, 4, sizeof 1);
+  return 0;
+}
+
+int test14() {
+  int b;
+  int a[1 + 2];
+  int *p;
+  p = &a;
+  *(p + 3) = 99;
+  assert(14, 99, b);
   return 0;
 }
 

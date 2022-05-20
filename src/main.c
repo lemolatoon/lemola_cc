@@ -5,13 +5,18 @@
 #include "lemola_cc.h"
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
+  if (!(argc == 2 || (argc == 4 && strcmp(argv[2], "-o") == 0))) {
     fprintf(stderr, "引数の個数が正しくありません。%d", argc);
     return 0;
   }
 
   FILE *source_pointer = fopen(argv[1], "r");
-  FILE *target_pointer = fopen("src.s", "w");
+  FILE *target_pointer;
+  if (argc == 4) {
+    target_pointer = fopen(argv[3], "w");
+  } else {
+    target_pointer = fopen("src.s", "w");
+  }
 
   // buffer
   const int SIZE = 1048576;

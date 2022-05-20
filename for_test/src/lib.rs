@@ -431,25 +431,35 @@ impl Debug for LVar<'_> {
 #[derive(Debug)]
 #[repr(C)]
 enum TypeKind {
+    NONE,
     INT,
     PTR,
+    ARRAY,
 }
 
 #[repr(C)]
 pub struct Type<'a> {
     ty: TypeKind,
     ptr_to: &'a Type<'a>,
+    array_size: usize,
 }
 
 impl<'a> Debug for Type<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         assert!(!(self as *const Type<'_>).is_null());
         match self.ty {
+            TypeKind::NONE => f.debug_struct("Type").field("ty", &self.ty).finish(),
             TypeKind::INT => f.debug_struct("Type").field("ty", &self.ty).finish(),
             TypeKind::PTR => f
                 .debug_struct("Type")
                 .field("ty", &self.ty)
                 .field("ptr_to", &self.ptr_to)
+                .finish(),
+            TypeKind::ARRAY => f
+                .debug_struct("Type")
+                .field("ty", &self.ty)
+                .field("ptr_to", &self.ptr_to)
+                .field("array_size", &self.array_size)
                 .finish(),
         }
     }

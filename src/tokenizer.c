@@ -112,13 +112,22 @@ bool peek_number() {
   return true;
 }
 
+// return whether current token is <type-specifier> or not.
+bool is_type_specifier() {
+  if (token->kind == TK_INT) {
+    return true;
+  }
+  return false;
+}
+
 // When the next token is ident, then token will be replaced with next token
 // and then return the number. Otherwise, call error()
 Token *consume_ident() {
   token_printd(token);
   assertd(token->kind == TK_IDENT);
   if (token->kind != TK_IDENT) {
-    error_at("expect ident but got : %d (token->kind)\n", token->kind);
+    error_at(token->str, "expect ident but got : %d (token->kind)\n",
+             token->kind);
   }
   Token *ident = token;
   token = ident->next;
@@ -152,7 +161,7 @@ static bool is_punctuator(char *p) {
   if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
       *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' ||
       *p == '{' || *p == '}' || *p == '%' || *p == ',' || *p == '*' ||
-      *p == '&') {
+      *p == '&' || *p == '[' || *p == ']') {
     return true;
   } else {
     return false;
@@ -217,7 +226,7 @@ Token *tokenize(char *p) {
 
     // Identifier or Reserved words
     // possible characters that can be beside indent
-    char *white_ptr = strpbrk(p, " \n\t=;,()}");
+    char *white_ptr = strpbrk(p, " \n\t=;,()}[");
     int len = white_ptr - p;
     if (len >= 1) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return

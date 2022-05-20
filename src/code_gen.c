@@ -1,5 +1,6 @@
 #include "lemola_cc.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -18,6 +19,10 @@ int size_of(Type *type) {
     return 4;
   case PTR:
     return 8;
+  case ARRAY:
+    return size_of(type->ptr_to) * type->array_size;
+  case NONE:
+    error("Type is None\n");
   }
 }
 
@@ -73,9 +78,16 @@ static void generate_funcdef(FILE *fp, Node *node) {
     assertd(arg->kind == ND_LVAR);
     assertd(arg != NULL);
     generate_left_value(fp, arg);
-    pop(fp, "rax"); // arg lvar addr
-    pop(fp, "rdi"); // i-th arg (rdi, ...)
-    fprintf(fp, " mov [rax], rdi\n");
+    pop(fp, "rax");               // arg lvar addr
+    pop(fp, "rdi");               // i-th arg (rdi, ...)
+    switch (size_of(arg->type)) { // add type
+    case 4:
+      fprintf(fp, " mov DWORD PTR [rax], edi\n");
+      break;
+    case 8:
+      fprintf(fp, " mov QWORD PTR [rax], rdi\n");
+      break;
+    }
     arg = arg->next;
   }
   fprintfd(fp, "# assign args to lvar end\n");
@@ -271,24 +283,41 @@ static void generate_expr(FILE *fp, Node *node) {
     generate_left_value(fp, node);
     pop(fp, "rax");
     // load value rax pointing to
-    fprintf(fp, " mov rax, [rax]\n");
+
+    switch (size_of(node->type)) {
+    case 4:
+      fprintf(fp, " mov eax, DWORD PTR [rax]\n");
+      break;
+    case 8:
+      fprintf(fp, " mov rax, QWORD PTR [rax]\n");
+      break;
+    }
     // push rax as result of evaluation
     push(fp, "rax");
     return;
   case ND_ASSIGN:
+    fprintfd(fp, "# assign to");
+    dynprintd(fp, node->lhs->name, node->lhs->len);
+    fprintfd(fp, "\n");
     generate_left_value(fp, node->lhs);
-    printk("\033[31m");
-    printk("HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    printk("\033[0m\n");
     ast_printd(node->lhs);
     generate_expr(fp, node->rhs); // <assign>
 
     pop(fp, "rdi"); // right value
     pop(fp, "rax"); // left value(address)
     // *rax = rdi
-    fprintf(fp, " mov [rax], rdi\n");
+    switch (size_of(node->lhs->type)) { // add type
+    case 4:
+      fprintf(fp, " mov DWORD PTR [rax], edi\n");
+      break;
+    case 8:
+      fprintf(fp, " mov QWORD PTR [rax], rdi\n");
+      break;
+    }
     // `a = b` returns b
     push(fp, "rdi");
+    fprintfd(fp, "# assign to");
+    fprintfd(fp, " end\n");
     return;
   case ND_CALLFUNC:
     generate_call_func(fp, node);
@@ -303,7 +332,14 @@ static void generate_expr(FILE *fp, Node *node) {
     ast_printd(node);
     generate_expr(fp, node->lhs);
     fprintf(fp, " pop rax\n");
-    fprintf(fp, " mov rax, [rax]\n");
+    switch (size_of(node->type)) {
+    case 4:
+      fprintf(fp, " mov eax, DWORD PTR [rax]\n");
+      break;
+    case 8:
+      fprintf(fp, " mov rax, QWORD PTR [rax]\n");
+      break;
+    }
     fprintf(fp, " push rax\n");
     fprintfd(fp, "# deref end\n");
     return;
@@ -317,8 +353,9 @@ static void generate_expr(FILE *fp, Node *node) {
   // binary expr
 
   if ((node->kind == ND_ADD || node->kind == ND_SUB)) {
-    fprintfd(fp, "# ptr add or sub\n");
-    if ((node->lhs->kind == ND_LVAR && node->lhs->type->ty == PTR)) {
+    if ((node->rhs->type->ty == INT &&
+         node->lhs->type->ty == PTR)) { // e.g) int *p; p + 2;
+      fprintfd(fp, "# ptr add or sub gen value\n");
       generate_expr(fp, node->lhs);
       ast_printd(node);
       Node *expr = new_node(ND_MUL, node->rhs,
@@ -326,25 +363,31 @@ static void generate_expr(FILE *fp, Node *node) {
       expr->type = calloc(1, sizeof(Type));
       expr->type->ty = PTR;
       expr->type->ptr_to = node->lhs->type->ptr_to;
-      // TODO: clone above
       generate_expr(fp, expr);
-    } else if ((node->rhs->kind == ND_LVAR && node->rhs->type->ty == PTR)) {
+      fprintfd(fp, "# ptr add or sub gen value end\n");
+    } else if ((node->lhs->type->ty == INT &&
+                node->rhs->type->ty == PTR)) { // e.g) int *p; 2 + p;
+      fprintfd(fp, "# ptr add or sub gen value\n");
       generate_expr(fp, node->rhs);
       ast_printd(node);
       Node *expr = new_node(ND_MUL, node->lhs,
                             new_node_num(size_of(node->rhs->type->ptr_to)));
       expr->type = calloc(1, sizeof(Type));
       expr->type->ty = PTR;
-      expr->type->ptr_to->ty = node->rhs->type->ptr_to;
+      expr->type->ptr_to = node->rhs->type->ptr_to;
       generate_expr(fp, expr);
+      fprintfd(fp, "# ptr add or sub gen value end\n");
     } else {
+      fprintfd(fp, "# add or sub gen value\n");
       generate_expr(fp, node->lhs);
       generate_expr(fp, node->rhs);
+      fprintfd(fp, "# add or sub gen value end\n");
     }
-    fprintfd(fp, "# ptr add or sub end\n");
   } else {
+    fprintfd(fp, "# binary expr gen value\n");
     generate_expr(fp, node->lhs);
     generate_expr(fp, node->rhs);
+    fprintfd(fp, "# binary expr gen value end\n");
   }
 
   pop(fp, "rdi");

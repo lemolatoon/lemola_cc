@@ -1,3 +1,4 @@
+#include "declaration.h"
 #include "lemola_cc.h"
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,15 @@
 void parse_program();
 static Node *parse_func();
 static Node *parse_stmt();
+
+static Declaration *parse_declaration();
+static DeclarationSpecifier *parse_declaration_specifiers();
+static TypeSpecifier *parse_type_specifiers();
+static InitDeclarator *parse_init_declarator();
+static Declarator *parse_declarator();
+static DirectDeclarator *parse_direct_declarator();
+static Pointer *parse_pointer();
+
 static Node *parse_expr();
 static Node *parse_equality();
 static Node *parse_assign();
@@ -19,6 +29,72 @@ static Node *parse_primary();
 static Type *parse_type();
 
 static Node *create_ident_node(Token *token, NodeKind kind);
+
+int const_eval(Node *expr) {
+  assertd(expr != NULL);
+  switch (expr->kind) {
+  case ND_NUM:
+    return expr->value;
+  case ND_LVAR:
+    fprintf(stderr,
+            "local variable cannot be used as length of array\nthe var is: ");
+    dynprint(stderr, expr->name, expr->len);
+    error("\n");
+  case ND_ASSIGN:
+    fprintf(stderr, "assignment expr cannot be used as length of array\n");
+    error("\n");
+  case ND_CALLFUNC:
+    error("call function expr cannot be used as length of array");
+  case ND_ADDR:
+    error("using `&` operator expr cannot be used as length of array");
+  case ND_DEREF:
+    error("using `*` (dereference) operator expr cannot be used as length of "
+          "array");
+  case ND_ADD:
+    return const_eval(expr->lhs) + const_eval(expr->rhs);
+  case ND_SUB:
+    return const_eval(expr->lhs) - const_eval(expr->rhs);
+  case ND_MUL:
+    return const_eval(expr->lhs) * const_eval(expr->rhs);
+  case ND_DIV:
+    assert(const_eval(expr->rhs) != 0);
+    return const_eval(expr->lhs) / const_eval(expr->rhs);
+  case ND_REST:
+    return const_eval(expr->lhs) % const_eval(expr->rhs);
+  case ND_EQ:
+    return const_eval(expr->lhs) == const_eval(expr->rhs);
+  case ND_NEQ:
+    return const_eval(expr->lhs) != const_eval(expr->rhs);
+  case ND_SMALLER:
+    return const_eval(expr->lhs) < const_eval(expr->rhs);
+  case ND_SMALLEREQ:
+    return const_eval(expr->lhs) <= const_eval(expr->rhs);
+  default:
+    error("This expr is inappropriate for const expr");
+  }
+}
+
+// peek next Token and return whether next token is first token of declaration
+// or not.
+bool peek_declaration() { return is_type_specifier(); }
+
+// return memory size of the type including align
+int mem_size(Type *type) {
+  assertd(type != NULL);
+  switch (type->ty) {
+  case INT:
+    return 8; // TODO: 4 or 8
+  case PTR:
+    return 8;
+  case ARRAY:
+    assertd(type->ptr_to != NULL);
+    return mem_size(type->ptr_to) * type->array_size;
+  case NONE:
+    error("type in mem_size is NONE");
+  }
+  error("Unreachable code at" HERE);
+  return 1;
+}
 
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -64,6 +140,7 @@ LVar *find_lvar(Token *tok) {
 // Currently name is used for calculating offset from rbp
 Node *new_node_local_variable(Type *type, Token *tok) {
   token_printd(tok);
+  // type_printd(type);
   assertd(tok->kind == TK_IDENT);
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_LVAR;
@@ -85,9 +162,9 @@ Node *new_node_local_variable(Type *type, Token *tok) {
   lvar->len = tok->len;
   lvar->type = type;
   if (locals == NULL) {
-    lvar->offset = 8;
+    lvar->offset = size_of(type); // TODO: size_of ?
   } else {
-    lvar->offset = locals->offset + 8;
+    lvar->offset = locals->offset + size_of(type);
   }
   node->offset = lvar->offset;
   node->type = lvar->type;
@@ -95,7 +172,7 @@ Node *new_node_local_variable(Type *type, Token *tok) {
   locals = lvar;
   printk("FINISH CREATE LVAR\n");
   ast_printd(node);
-  lvar_printd(lvar);
+  lvar_printd(lvar); // TODO: check this
   assertd(locals != NULL);
 
   return node;
@@ -241,11 +318,42 @@ Node *parse_stmt() {
       linking_node = linking_node->next;
     }
     return node;
-  } else if (consume(TK_INT)) {
-    printk("NEW LOCAL VARIABLE\n");
-    node =
-        new_node(ND_DECLARE,
-                 new_node_local_variable(parse_type(), consume_ident()), NULL);
+  } else if (peek_declaration()) {
+    Declaration *declaration = parse_declaration();
+    Type *type = declaration->init_declarator->declarator->ptr
+                     ->ptr_to; // type->ptr_to->ptr_to->...->ty == NULL
+    int num_star = declaration->init_declarator->declarator->ptr->num_star;
+    if (type->ty != NONE) { // if ptr type
+      Type *ground = type->ptr_to;
+      for (int i = 0; i < num_star - 1; i++) {
+        assertd(ground->ty == PTR);
+        ground = ground->ptr_to;
+      }
+      ground->ty = declaration->declaration_specifier->type_specifier->kind;
+    } else { // not ptr type
+      type->ty = declaration->declaration_specifier->type_specifier->kind;
+    }
+    // type_printd(type);
+    Type *tmp = type;
+    switch (declaration->init_declarator->declarator->direct_declarator->kind) {
+    case DD_ARRAY:
+      type = calloc(1, sizeof(Type));
+      type->ty = ARRAY;
+      type->ptr_to = tmp;
+      type->array_size = const_eval(
+          declaration->init_declarator->declarator->direct_declarator->expr);
+      break;
+    case DD_IDENT:
+      break;
+    }
+    Token *var_token =
+        declaration->init_declarator->declarator->direct_declarator->ident;
+    token_printd(var_token);
+    token_printd(var_token);
+    assertd(var_token->kind == TK_IDENT);
+    Node *var =
+        new_node_local_variable(type, var_token); // create local variable
+    node = new_node(ND_DECLARE, var, NULL);
     expect(";");
   } else {
     // <expr> ";"
@@ -254,11 +362,84 @@ Node *parse_stmt() {
   }
 
   printk("===parse_stmt===\n");
-  if (node == NULL) {
-    printk("DECLARE\n");
-  }
-  // ast_printd(node);
   return node;
+}
+
+static Declaration *parse_declaration() {
+  Declaration *declaration = calloc(1, sizeof(Declaration));
+  declaration->declaration_specifier = parse_declaration_specifiers();
+  declaration->init_declarator = parse_init_declarator();
+  return declaration;
+};
+
+static DeclarationSpecifier *parse_declaration_specifiers() {
+  DeclarationSpecifier *declaration_specifier =
+      calloc(1, sizeof(DeclarationSpecifier));
+  declaration_specifier->type_specifier = parse_type_specifiers();
+  return declaration_specifier;
+}
+
+static TypeSpecifier *parse_type_specifiers() {
+  TypeSpecifier *type_specifier = calloc(1, sizeof(Type));
+  if (consume(TK_INT)) {
+    type_specifier->kind = INT;
+  } else {
+    fprintf(stderr, "Unexpected Token: ");
+    dynprint(stderr, token->str, token->len);
+    error("\nExpected type-specifiers");
+  }
+
+  return type_specifier;
+}
+
+static InitDeclarator *parse_init_declarator() {
+  InitDeclarator *init_declarator = calloc(1, sizeof(InitDeclarator));
+  init_declarator->declarator = parse_declarator();
+  return init_declarator;
+}
+
+static Declarator *parse_declarator() {
+  Declarator *declarator = calloc(1, sizeof(Declarator));
+  declarator->ptr = parse_pointer();
+  declarator->direct_declarator = parse_direct_declarator();
+  return declarator;
+}
+
+static Pointer *parse_pointer() {
+  Type *type = calloc(1, sizeof(Type));
+  Type *watching = type;
+  token_printd(token);
+  int num = 0;
+  while (consume_op("*")) {
+    num++;
+    watching->ty = PTR;
+    watching->ptr_to = calloc(1, sizeof(Type));
+    watching = watching->ptr_to;
+  }
+  watching->ty = NONE;
+  Pointer *ptr = calloc(1, sizeof(Pointer));
+  ptr->ptr_to = type;
+  ptr->num_star = num;
+  if (type->ty != NONE) {
+    assertd(ptr->ptr_to != NULL);
+  }
+
+  return ptr;
+}
+
+static DirectDeclarator *parse_direct_declarator() {
+  DirectDeclarator *direct_declarator = calloc(1, sizeof(DirectDeclarator));
+  token_printd(token);
+  direct_declarator->ident = consume_ident();
+  if (consume_op("[")) {
+    direct_declarator->kind = DD_ARRAY;
+    direct_declarator->expr = parse_assign();
+    expect("]");
+  } else {
+    direct_declarator->kind = DD_IDENT;
+  }
+
+  return direct_declarator;
 }
 
 static Type *parse_type() {
@@ -271,7 +452,7 @@ static Type *parse_type() {
     printk("\033[31mPTR!!\033[0m\n");
   } else {
     type->ty = INT;
-    type_printd(type);
+    // type_printd(type);
     return type;
   }
   type->ptr_to = calloc(1, sizeof(Type));
@@ -288,7 +469,7 @@ static Type *parse_type() {
   assertd(type->ty == PTR);
   printk("%d\n", type->ty);
   assertd(type != NULL);
-  type_printd(type);
+  // type_printd(type);
   return type;
 }
 
@@ -405,7 +586,7 @@ static Node *parse_add() {
         error("Unreachable if statement at " HERE);
       }
       printk(HERE "!!!!!!!\n");
-      type_printd(node->type);
+      // type_printd(node->type);
 
     } else if (consume_op("-")) {
       node = new_node(ND_SUB, node, parse_mul());
@@ -423,7 +604,7 @@ static Node *parse_add() {
         error("Unreachable if statement at " HERE);
       }
       printk(HERE "!!!!!!!\n");
-      type_printd(node->type);
+      // type_printd(node->type);
       assertd(node->type != NULL);
 
     } else {
@@ -476,7 +657,7 @@ static Node *parse_unary() {
   if (consume(TK_SIZEOF)) {
     // TODO: check type and replace const.
     Node *node = parse_unary();
-    assertd(node->type);
+    assertd(node->type != NULL);
     return new_node_num(size_of(node->type));
   } else if (consume_op("+")) {
     // "+" <primary>
@@ -539,7 +720,6 @@ Node *parse_primary() {
   }
 
   // <ident> ("(" ")")?
-  printk("this\n");
   Token *token = consume_ident();
   if (consume_op("(")) {
     // function call

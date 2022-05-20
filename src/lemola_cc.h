@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#pragma once
+
 // #define Debug
 //#define RUSTD
 
@@ -102,13 +104,19 @@ struct LVar {
 };
 
 typedef enum {
+  NONE,
   INT,
   PTR,
+  ARRAY,
 } TypeKind;
 
 struct Type {
-  TypeKind ty;         // pointer or int
-  struct Type *ptr_to; // when(ty==PTR), type is the pointer to `ptr_to`
+  TypeKind ty; // pointer or int
+
+  // when(ty==PTR), type is the pointer to `ptr_to`
+  // when(ty==ARRAY), ptr_to is type of array
+  struct Type *ptr_to;
+  size_t array_size; // when(ty==ARRAY), size of array e.g) a[2] -> 2
 };
 
 // Ensure to access after calling `parse_program()`.
@@ -180,6 +188,9 @@ int expect_number();
 // Peek next Token and return whether next token is <num> or not.
 bool peek_number();
 
+// return whether current token is <type-specifier> or not.
+bool is_type_specifier();
+
 // When the next token is ident, then token will be replaced with next token
 // and then return Token* (TK_IDNET). Otherwise, call error()
 Token *consume_ident();
@@ -215,6 +226,7 @@ void type_print(Type *type);
 #define token_printd(token) token_print(token)
 #define lvar_printd(lvar) lvar_print(lvar)
 #define type_printd(type) type_print(type)
+#define dynprintd(fp, name, len) dynprint(fp, name, len)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -229,6 +241,9 @@ void type_print(Type *type);
   do {                                                                         \
   } while (0)
 #define type_printd(token)                                                     \
+  do {                                                                         \
+  } while (0)
+#define dynprintd(fp, name, len)                                               \
   do {                                                                         \
   } while (0)
 #endif
