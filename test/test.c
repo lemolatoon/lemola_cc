@@ -1,4 +1,7 @@
 int main() {
+  assert(0, 3, test0());
+  assert(0, 2, test0_2());
+  assert(0, 10, test0_3());
   assert(1, 9, test1());
   assert(2, 5, test2(5));
   assert(3, 5, test3(5));
@@ -16,10 +19,27 @@ int main() {
   assert(12, 0, test12());
   assert(13, 0, test13());
 
-  test14();
+  assert(14, 0, test14());
+  assert(15, 0, test15());
 
   print_ok();
   return 0;
+}
+
+int test0() { return 3; }
+
+int test0_2() { return g(2); }
+
+int test0_3() { return h(5); }
+
+int g(int n) { return n; }
+
+int h(int n) {
+  if (n > 5) {
+    return 5;
+  } else {
+    return 10;
+  }
 }
 
 int test1() { return f(5); }
@@ -195,10 +215,23 @@ int test13() {
 int test14() {
   int b;
   int a[1 + 2];
+  assert(14, 4 * 3, sizeof(a));
   int *p;
   p = &a;
   *(p + 3) = 99;
   assert(14, 99, b);
+  return 0;
+}
+
+int test15() {
+  int a[2];
+  *a = 1; // here
+  assert(15, 1, *a);
+  return 0;
+  *(a + 1) = 2;
+  int *p;
+  p = a;
+  assert(15, 3, *p + *(p + 1));
   return 0;
 }
 

@@ -31,6 +31,11 @@ void generate_head(FILE *fp, Node *node) {
   generate_funcdef(fp, node);
   printk("depth: %d\n", depth);
   ast_printd(node);
+  if (depth != 0) {
+    fprintf(stderr, "depth != 0 after code generate func: ");
+    dynprint(stderr, node->name, node->len);
+    error("\n");
+  }
   assert(depth == 0);
 }
 
@@ -225,6 +230,12 @@ void generate_stmt(FILE *fp, Node *node) {
     }
     return;
   }
+  case ND_DECLARE:
+    node->rhs = new_node_num(0); // init value
+    node->rhs->type = node->lhs->type;
+    generate_expr(fp, new_node(ND_ASSIGN, node->lhs, node->rhs));
+    pop(fp, "rax"); // pop assigned rhs
+    return;
   }
 
   // ----expr----
@@ -342,11 +353,6 @@ static void generate_expr(FILE *fp, Node *node) {
     }
     fprintf(fp, " push rax\n");
     fprintfd(fp, "# deref end\n");
-    return;
-  case ND_DECLARE:
-    node->rhs = new_node_num(0); // init value
-    node->rhs->type = node->lhs->type;
-    generate_expr(fp, new_node(ND_ASSIGN, node->lhs, node->rhs));
     return;
   }
 

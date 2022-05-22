@@ -24,9 +24,10 @@ int main(int argc, char **argv) {
   char *buf_ptr = &s[0];
   while (fgets(buf_ptr, SIZE - (buf_ptr - &s[0]), source_pointer) != NULL) {
     buf_ptr = buf_ptr + strlen(buf_ptr);
-    *buf_ptr = (char)0;
+    // *buf_ptr = (char)0;
   };
-  *buf_ptr = '\0';
+  *buf_ptr = '\n'; // file is required to end with '\n'
+  *(buf_ptr + 1) = '\0';
 
   // tokenize and parse
   printk("============tokenize!!==========\n");

@@ -204,6 +204,14 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (strncmp(p, "//", 2) == 0) {
+      p += 2;
+      while (*p != '\n') {
+        p++;
+      }
+      continue;
+    }
+
     // Numerical Literal
     if (isdigit(*p)) {
       char *digit_start = p;

@@ -78,24 +78,6 @@ int const_eval(Node *expr) {
 // or not.
 bool peek_declaration() { return is_type_specifier(); }
 
-// return memory size of the type including align
-int mem_size(Type *type) {
-  assertd(type != NULL);
-  switch (type->ty) {
-  case INT:
-    return 8; // TODO: 4 or 8
-  case PTR:
-    return 8;
-  case ARRAY:
-    assertd(type->ptr_to != NULL);
-    return mem_size(type->ptr_to) * type->array_size;
-  case NONE:
-    error("type in mem_size is NONE");
-  }
-  error("Unreachable code at" HERE);
-  return 1;
-}
-
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   printk("NEW_NODE\n");
@@ -566,12 +548,24 @@ static Node *parse_add() {
   for (;;) {
     if (consume_op("+")) {
       node = new_node(ND_ADD, node, parse_mul());
-      printk("%d\n", node->rhs);
-      printk("%d\n", node->lhs);
-      printk("%d\n", node->rhs->type);
-      printk("%d\n", node->lhs->type);
-      ast_printd(node->lhs);
-      ast_printd(node);
+      if (node->lhs->type->ty == ARRAY) {
+        node->lhs->type = clone_type(node->lhs->type);
+        node->lhs->type->ty = node->lhs->type->ptr_to->ty;
+        // a + 1 := &a[0] + 1
+        node->lhs = new_node(ND_ADDR, node->lhs, NULL);
+        node->lhs->type = calloc(1, sizeof(Type));
+        node->lhs->type->ty = PTR;
+        node->lhs->type->ptr_to = clone_type(node->lhs->lhs->type);
+      }
+      if (node->rhs->type->ty == ARRAY) {
+        node->rhs->type = clone_type(node->rhs->type);
+        node->rhs->type->ty = node->rhs->type->ptr_to->ty;
+        // 1 + a := 1 + &a[0]
+        node->rhs = new_node(ND_ADDR, node->rhs, NULL);
+        node->rhs->type = calloc(1, sizeof(Type));
+        node->rhs->type->ty = PTR;
+        node->rhs->type->ptr_to = clone_type(node->rhs->rhs->type);
+      }
       // type check (rhs->type == lhs->type) deep equal
       if (node->lhs->type->ty != PTR && node->rhs->type->ty != PTR) {
         assert(node->rhs->type->ty == node->lhs->type->ty);
@@ -590,6 +584,24 @@ static Node *parse_add() {
 
     } else if (consume_op("-")) {
       node = new_node(ND_SUB, node, parse_mul());
+      if (node->lhs->type->ty == ARRAY) {
+        node->lhs->type = clone_type(node->lhs->type);
+        node->lhs->type->ty = node->lhs->type->ptr_to->ty;
+        // a - 1 := &a[0] - 1
+        node->lhs = new_node(ND_ADDR, node->lhs, NULL);
+        node->lhs->type = calloc(1, sizeof(Type));
+        node->lhs->type->ty = PTR;
+        node->lhs->type->ptr_to = clone_type(node->lhs->lhs->type);
+      }
+      if (node->rhs->type->ty == ARRAY) {
+        node->rhs->type = clone_type(node->rhs->type);
+        node->rhs->type->ty = node->rhs->type->ptr_to->ty;
+        // a - 1 := &a[0] - 1
+        node->rhs = new_node(ND_ADDR, node->rhs, NULL);
+        node->rhs->type = calloc(1, sizeof(Type));
+        node->rhs->type->ty = PTR;
+        node->rhs->type->ptr_to = clone_type(node->rhs->rhs->type);
+      }
       // type check (rhs->type == lhs->type) deep equal
       if (node->lhs->type->ty != PTR && node->rhs->type->ty != PTR) {
         assert(node->rhs->type->ty == node->lhs->type->ty);
@@ -621,15 +633,10 @@ static Node *parse_mul() {
   for (;;) {
     if (consume_op("*")) {
       node = new_node(ND_MUL, node, parse_unary());
-      printk("%d\n", node->rhs);
-      printk("%d\n", node->lhs);
-      printk("%d\n", node->rhs->type);
-      printk("%d\n", node->lhs->type);
-      ast_printd(node->rhs);
-      ast_printd(node->lhs);
 
       // ptr cannot be mul
       assert(node->rhs->type->ty != PTR && node->lhs->type->ty != PTR);
+      assert(node->rhs->type->ty != ARRAY && node->lhs->type->ty != ARRAY);
       node->type = calloc(1, sizeof(Type));
       node->type->ty = INT;
     } else if (consume_op("/")) {
@@ -663,6 +670,8 @@ static Node *parse_unary() {
     // "+" <primary>
     // `+a` is same as just `a`
     Node *node = parse_primary();
+    assertd(node->type->ty != PTR);
+    assertd(node->type->ty != ARRAY);
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("-")) {
@@ -670,12 +679,22 @@ static Node *parse_unary() {
     // `-a` is same as `0 - a`
     Node *node = new_node(ND_SUB, new_node_num(0), parse_primary());
     node->type = node->lhs->type;
+    assertd(node->type->ty != PTR);
+    assertd(node->type->ty != ARRAY);
     printk("===parse_unary=====\n");
     return node;
   } else if (consume_op("*")) {
     // "*" <unary>
     Node *node = new_node(ND_DEREF, parse_unary(), NULL);
-    ast_printd(node);
+    if (node->lhs->type->ty == ARRAY) {
+      node->lhs->type = clone_type(node->lhs->type);
+      node->lhs->type->ty = node->lhs->type->ptr_to->ty;
+      // *a := *&a[0]
+      node->lhs = new_node(ND_ADDR, node->lhs, NULL);
+      node->lhs->type = calloc(1, sizeof(Type));
+      node->lhs->type->ty = PTR;
+      node->lhs->type->ptr_to = clone_type(node->lhs->lhs->type);
+    }
     assert(node->lhs->type->ty == PTR);
     node->type = node->lhs->type->ptr_to;
     printk("===parse_unary=====\n");
@@ -686,7 +705,7 @@ static Node *parse_unary() {
     node->type = calloc(1, sizeof(Type));
     node->type->ty = PTR;
     assertd(node->lhs->type != NULL);
-    node->type->ptr_to = node->lhs->type;
+    node->type->ptr_to = clone_type(node->lhs->type);
     printk("===parse_unary=====\n");
     ast_printd(node);
     return node;
