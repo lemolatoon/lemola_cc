@@ -21,6 +21,7 @@ int main() {
 
   assert(14, 0, test14());
   assert(15, 0, test15());
+  assert(16, 0, test16());
 
   print_ok();
   return 0;
@@ -232,6 +233,18 @@ int test15() {
   int *p;
   p = a;
   assert(15, 3, *p + *(p + 1));
+  return 0;
+}
+
+int test16() {
+  int a[2];
+  a[0] = 3;
+  a[1] = 5;
+  assert(16, 3, *a);
+  assert(16, 3, a[0]);
+  assert(16, 3, 0 [a]);
+  assert(16, 5, 1 [a]);
+  assert(16, 5, *(a + 1));
   return 0;
 }
 

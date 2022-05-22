@@ -26,12 +26,12 @@
 <mul>                           := <unary> ("*" <unary> | "/" <unary> | "%" <unary>)* 
 <unary>                         := <postfix> 
                                     |"sizeof" <unary>
-                                    | "+"? <primary> 
-                                    | "-"? <primary>
+                                    | "+" <unary> 
+                                    | "-" <unary>
                                     | "*" <unary>
                                     | "&" <unary>
 <postfix>                       := <primary>
-                                    | <postfix> "[" <expr> "]"
+                                    | <primary> "[" <expr> "]"
 <primary>                       := <num> 
                                     | <ident> ("(" (<expr> ("," <expr>)*)? ")")?
                                     | "(" <expr> ")"

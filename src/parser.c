@@ -24,6 +24,7 @@ static Node *parse_relational();
 static Node *parse_add();
 static Node *parse_mul();
 static Node *parse_unary();
+static Node *parse_postfix();
 static Node *parse_primary();
 
 static Type *parse_type();
@@ -710,10 +711,61 @@ static Node *parse_unary() {
     ast_printd(node);
     return node;
   } else {
-    Node *node = parse_primary();
+    Node *node = parse_postfix();
     printk("===parse_unary=====\n");
     return node;
   }
+}
+
+Node *parse_postfix() {
+  Node *node = parse_primary();
+  ast_printd(node);
+  if (consume_op("[")) {
+    ast_printd(node);
+    Node *expr = parse_expr();
+    ast_printd(node);
+    // type conversion
+    if (node->type->ty == ARRAY) {
+      node->type = clone_type(node->type);
+      node->type->ty = node->type->ptr_to->ty;
+
+      node = new_node(ND_ADDR, node, NULL);
+      node->type = calloc(1, sizeof(Type));
+      node->type->ty = PTR;
+      node->type->ptr_to = clone_type(node->lhs->type);
+    }
+    if (expr->type->ty == ARRAY) {
+      expr->type = clone_type(expr->type);
+      expr->type->ty = expr->type->ptr_to->ty;
+
+      expr = new_node(ND_ADDR, expr, NULL);
+      expr->type = calloc(1, sizeof(Type));
+      expr->type->ty = PTR;
+      assertd(expr != NULL);
+      assertd(expr->type != NULL);
+      assertd(expr->lhs != NULL);
+      assertd(expr->lhs->type != NULL);
+      expr->type->ptr_to = clone_type(expr->lhs->type);
+    }
+    Type *derefed;
+    if (node->type->ty == PTR && expr->type->ty == INT) {
+      derefed = clone_type(node->type);
+    } else if (node->type->ty == INT && expr->type->ty == PTR) {
+      derefed = clone_type(expr->type);
+    } else {
+      error(
+          "In case `expr [ expr ]`, one must be PTR, one must be INT, but not");
+    }
+    expect("]");
+    ast_printd(node);
+    node;
+    node = new_node(ND_DEREF, new_node(ND_ADD, node, expr), NULL);
+    node->lhs->type = derefed;
+    node->type = clone_type(derefed->ptr_to);
+    ast_printd(node);
+    return node;
+  }
+  return node;
 }
 
 Node *parse_primary() {
@@ -727,6 +779,8 @@ Node *parse_primary() {
     printk("===parse_primary=====\n");
     return node;
   }
+
+  token_printd(token);
 
   // <num>
   if (peek_number()) {
@@ -750,6 +804,7 @@ Node *parse_primary() {
     int arg_count = 0;
     if (!consume_op(")")) {
       // <expr> ("," <expr>)*
+      ast_printd(node);
       node->first_arg = parse_expr();
       ast_printd(node);
       arg_count++;

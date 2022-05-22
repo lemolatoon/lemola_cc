@@ -213,6 +213,7 @@ int size_of(Type *type);
 
 // ---------------utils----------------
 void error(char *fmt, ...);
+Type *clone_type(Type *type);
 // ---------------utils----------------
 #ifdef RUSTD
 void ast_print(Node *node);
