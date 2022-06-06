@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#pragma once
+
 // #define Debug
 //#define RUSTD
 
@@ -42,14 +44,22 @@ typedef enum {
   ND_BLOCKSTMT, // { <stmt>* }
   ND_CALLFUNC,  // function call
   ND_FUNCDEF,   // definition of function
+  ND_ADDR,      // & <unary>(in lhs)
+  ND_DEREF,     // * <unary>(in lhs)
+  ND_DECLARE,   // "int" <ident> ";" lhs: ND_LVAR, rhs: init value
 } NodeKind;
 
 typedef struct Node Node;
+typedef struct Type Type;
 
 struct Node {
   NodeKind kind; // type of Node
-  Node *lhs;     // left hand side
-  Node *rhs;     // right hand side
+  // when binary expr
+  // when ND_DEREF
+  Node *lhs; // left hand side
+
+  // when binary expr
+  Node *rhs; // right hand side
 
   Node *condition;      // if or while or for
   Node *initialization; // for
@@ -77,6 +87,10 @@ struct Node {
 
   int value;  // when (kind == ND_NUM)
   int offset; // when(kind == ND_LVAR): offset of func stack from rbp
+
+  // when(kind == ND_LVAR): type of lvar
+  // when(kind == ND_NUM): type of literal
+  Type *type;
 };
 
 typedef struct LVar LVar;
@@ -86,6 +100,23 @@ struct LVar {
   char *name; // name of variable
   int len;    // length of variable name
   int offset; // offset from rbp
+  Type *type; // type of lvar
+};
+
+typedef enum {
+  NONE,
+  INT,
+  PTR,
+  ARRAY,
+} TypeKind;
+
+struct Type {
+  TypeKind ty; // pointer or int
+
+  // when(ty==PTR), type is the pointer to `ptr_to`
+  // when(ty==ARRAY), ptr_to is type of array
+  struct Type *ptr_to;
+  size_t array_size; // when(ty==ARRAY), size of array e.g) a[2] -> 2
 };
 
 // Ensure to access after calling `parse_program()`.
@@ -117,6 +148,8 @@ typedef enum {
   TK_FOR,      // for
   TK_ELSE,     // else
   TK_NUM,      // number literal
+  TK_INT,      // int
+  TK_SIZEOF,   // sizeof
   TK_EOF,      // End of File
 } TokenKind;
 
@@ -144,12 +177,19 @@ bool consume(TokenKind kind);
 // next token. Otherwise call `error()`
 void expect(char *op);
 
+// When the next token is expected kind, then token will be replaced with
+// next token. Otherwise call `error()`
+void expect_token(TokenKind kind);
+
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
 int expect_number();
 
 // Peek next Token and return whether next token is <num> or not.
 bool peek_number();
+
+// return whether current token is <type-specifier> or not.
+bool is_type_specifier();
 
 // When the next token is ident, then token will be replaced with next token
 // and then return Token* (TK_IDNET). Otherwise, call error()
@@ -165,21 +205,29 @@ Token *tokenize(char *p);
 // -------------code_gen---------------
 void generate_head(FILE *fp, Node *node);
 void get_exit(FILE *fp);
+void dynprint(FILE *fp, char *head, int len);
+
+// return sizeof(T)
+int size_of(Type *type);
 // -------------code_gen---------------
 
 // ---------------utils----------------
 void error(char *fmt, ...);
+Type *clone_type(Type *type);
 // ---------------utils----------------
 #ifdef RUSTD
 void ast_print(Node *node);
 void hello();
 void token_print(Token *token);
 void lvar_print(LVar *lvar);
+void type_print(Type *type);
 
 #define ast_printd(node) ast_print(node)
 #define hellod() hello()
 #define token_printd(token) token_print(token)
 #define lvar_printd(lvar) lvar_print(lvar)
+#define type_printd(type) type_print(type)
+#define dynprintd(fp, name, len) dynprint(fp, name, len)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -193,4 +241,15 @@ void lvar_print(LVar *lvar);
 #define lvar_printd(token)                                                     \
   do {                                                                         \
   } while (0)
+#define type_printd(token)                                                     \
+  do {                                                                         \
+  } while (0)
+#define dynprintd(fp, name, len)                                               \
+  do {                                                                         \
+  } while (0)
 #endif
+
+#define _STR(x) #x
+#define _STR2(x) _STR(x)
+#define __SLINE__ _STR2(__LINE__)
+#define HERE __FILE__ "(" __SLINE__ ")"

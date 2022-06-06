@@ -1,5 +1,6 @@
 #include "lemola_cc.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 char *arg_reg[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -12,15 +13,33 @@ static void generate_left_value(FILE *fp, Node *node);
 // depth of rsp
 static int depth = 0;
 
+int size_of(Type *type) {
+  switch (type->ty) {
+  case INT:
+    return 4;
+  case PTR:
+    return 8;
+  case ARRAY:
+    return size_of(type->ptr_to) * type->array_size;
+  case NONE:
+    error("Type is None\n");
+  }
+}
+
 void generate_head(FILE *fp, Node *node) {
   assertd(node->kind == ND_FUNCDEF);
   generate_funcdef(fp, node);
   printk("depth: %d\n", depth);
   ast_printd(node);
+  if (depth != 0) {
+    fprintf(stderr, "depth != 0 after code generate func: ");
+    dynprint(stderr, node->name, node->len);
+    error("\n");
+  }
   assert(depth == 0);
 }
 
-static void dynprint(FILE *fp, char *head, int len) {
+void dynprint(FILE *fp, char *head, int len) {
   for (int i = 0; i < len; i++) {
     fprintf(fp, "%c", *(head + i));
   }
@@ -30,7 +49,6 @@ static void dynprint(FILE *fp, char *head, int len) {
 // arg must end with '\0'
 static void push(FILE *fp, char *arg) {
   fprintf(fp, " push %s\n", arg);
-  printk("PUSH!!!!!\n");
   depth++;
 }
 
@@ -38,7 +56,6 @@ static void push(FILE *fp, char *arg) {
 // arg must end with '\0'
 static void pop(FILE *fp, char *arg) {
   fprintf(fp, " pop %s\n", arg);
-  printk("POP!!!!!\n");
   depth--;
 }
 
@@ -66,9 +83,16 @@ static void generate_funcdef(FILE *fp, Node *node) {
     assertd(arg->kind == ND_LVAR);
     assertd(arg != NULL);
     generate_left_value(fp, arg);
-    pop(fp, "rax"); // arg lvar addr
-    pop(fp, "rdi"); // i-th arg (rdi, ...)
-    fprintf(fp, " mov [rax], rdi\n");
+    pop(fp, "rax");               // arg lvar addr
+    pop(fp, "rdi");               // i-th arg (rdi, ...)
+    switch (size_of(arg->type)) { // add type
+    case 4:
+      fprintf(fp, " mov DWORD PTR [rax], edi\n");
+      break;
+    case 8:
+      fprintf(fp, " mov QWORD PTR [rax], rdi\n");
+      break;
+    }
     arg = arg->next;
   }
   fprintfd(fp, "# assign args to lvar end\n");
@@ -86,17 +110,25 @@ static void generate_funcdef(FILE *fp, Node *node) {
 
 // Calculate address of left value and push it
 static void generate_left_value(FILE *fp, Node *node) {
-  fprintfd(fp, "# gen lvar's addr\n");
-  if (node->kind != ND_LVAR) {
+  if (node->kind == ND_DEREF) {
+    fprintfd(fp, "# gen deref's addr\n");
+    ast_printd(node);
+    assertd(node->lhs != NULL);
+    generate_expr(fp, node->lhs);
+    fprintfd(fp, "# gen deref's addr end\n");
+    return;
+  } else if (node->kind == ND_LVAR) {
+    fprintfd(fp, "# gen lvar's addr\n");
+    // rax = rbp
+    fprintf(fp, " mov rax, rbp\n");
+    // calculating address of local variable by using offset in stack from rbp
+    // rax = rbp - offset ; address calculation
+    fprintf(fp, " sub rax, %d\n", node->offset);
+    push(fp, "rax");
+    fprintfd(fp, "# gen lvar's addr end\n");
+  } else {
     error("left value of assigning is not variable");
   }
-  // rax = rbp
-  fprintf(fp, " mov rax, rbp\n");
-  // calculating address of local variable by using offset in stack from rbp
-  // rax = rbp - offset ; address calculation
-  fprintf(fp, " sub rax, %d\n", node->offset);
-  push(fp, "rax");
-  fprintfd(fp, "# gen lvar's addr end\n");
 }
 
 static int label_index = 0;
@@ -114,6 +146,7 @@ void generate_stmt(FILE *fp, Node *node) {
     pop(fp, "rax");
     // revert rsp to mem which is storing the previous rbp
     fprintf(fp, " mov rsp, rbp\n");
+    printk("=============parse_func=========");
     // revert rbp
     fprintf(fp, " pop rbp\n");
     fprintf(fp, " ret\n");
@@ -197,6 +230,12 @@ void generate_stmt(FILE *fp, Node *node) {
     }
     return;
   }
+  case ND_DECLARE:
+    node->rhs = new_node_num(0); // init value
+    node->rhs->type = node->lhs->type;
+    generate_expr(fp, new_node(ND_ASSIGN, node->lhs, node->rhs));
+    pop(fp, "rax"); // pop assigned rhs
+    return;
   }
 
   // ----expr----
@@ -255,29 +294,107 @@ static void generate_expr(FILE *fp, Node *node) {
     generate_left_value(fp, node);
     pop(fp, "rax");
     // load value rax pointing to
-    fprintf(fp, " mov rax, [rax]\n");
+
+    switch (size_of(node->type)) {
+    case 4:
+      fprintf(fp, " mov eax, DWORD PTR [rax]\n");
+      break;
+    case 8:
+      fprintf(fp, " mov rax, QWORD PTR [rax]\n");
+      break;
+    }
     // push rax as result of evaluation
     push(fp, "rax");
     return;
   case ND_ASSIGN:
+    fprintfd(fp, "# assign to");
+    dynprintd(fp, node->lhs->name, node->lhs->len);
+    fprintfd(fp, "\n");
     generate_left_value(fp, node->lhs);
+    ast_printd(node->lhs);
     generate_expr(fp, node->rhs); // <assign>
 
     pop(fp, "rdi"); // right value
     pop(fp, "rax"); // left value(address)
     // *rax = rdi
-    fprintf(fp, " mov [rax], rdi\n");
+    switch (size_of(node->lhs->type)) { // add type
+    case 4:
+      fprintf(fp, " mov DWORD PTR [rax], edi\n");
+      break;
+    case 8:
+      fprintf(fp, " mov QWORD PTR [rax], rdi\n");
+      break;
+    }
     // `a = b` returns b
     push(fp, "rdi");
+    fprintfd(fp, "# assign to");
+    fprintfd(fp, " end\n");
     return;
   case ND_CALLFUNC:
     generate_call_func(fp, node);
     return;
+  case ND_ADDR:
+    assertd(node->lhs != NULL);
+    generate_left_value(fp, node->lhs);
+    return;
+  case ND_DEREF:
+    fprintfd(fp, "# deref\n");
+    assertd(node->lhs != NULL);
+    ast_printd(node);
+    generate_expr(fp, node->lhs);
+    fprintf(fp, " pop rax\n");
+    switch (size_of(node->type)) {
+    case 4:
+      fprintf(fp, " mov eax, DWORD PTR [rax]\n");
+      break;
+    case 8:
+      fprintf(fp, " mov rax, QWORD PTR [rax]\n");
+      break;
+    }
+    fprintf(fp, " push rax\n");
+    fprintfd(fp, "# deref end\n");
+    return;
   }
 
   // binary expr
-  generate_expr(fp, node->lhs);
-  generate_expr(fp, node->rhs);
+
+  if ((node->kind == ND_ADD || node->kind == ND_SUB)) {
+    if ((node->rhs->type->ty == INT &&
+         node->lhs->type->ty == PTR)) { // e.g) int *p; p + 2;
+      fprintfd(fp, "# ptr add or sub gen value\n");
+      generate_expr(fp, node->lhs);
+      ast_printd(node);
+      Node *expr = new_node(ND_MUL, node->rhs,
+                            new_node_num(size_of(node->lhs->type->ptr_to)));
+      expr->type = calloc(1, sizeof(Type));
+      expr->type->ty = PTR;
+      expr->type->ptr_to = node->lhs->type->ptr_to;
+      generate_expr(fp, expr);
+      fprintfd(fp, "# ptr add or sub gen value end\n");
+    } else if ((node->lhs->type->ty == INT &&
+                node->rhs->type->ty == PTR)) { // e.g) int *p; 2 + p;
+      fprintfd(fp, "# ptr add or sub gen value\n");
+      generate_expr(fp, node->rhs);
+      ast_printd(node);
+      Node *expr = new_node(ND_MUL, node->lhs,
+                            new_node_num(size_of(node->rhs->type->ptr_to)));
+      expr->type = calloc(1, sizeof(Type));
+      expr->type->ty = PTR;
+      expr->type->ptr_to = node->rhs->type->ptr_to;
+      generate_expr(fp, expr);
+      fprintfd(fp, "# ptr add or sub gen value end\n");
+    } else {
+      fprintfd(fp, "# add or sub gen value\n");
+      generate_expr(fp, node->lhs);
+      generate_expr(fp, node->rhs);
+      fprintfd(fp, "# add or sub gen value end\n");
+    }
+  } else {
+    fprintfd(fp, "# binary expr gen value\n");
+    generate_expr(fp, node->lhs);
+    generate_expr(fp, node->rhs);
+    fprintfd(fp, "# binary expr gen value end\n");
+  }
 
   pop(fp, "rdi");
   pop(fp, "rax");

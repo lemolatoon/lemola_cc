@@ -22,6 +22,9 @@ enum NodeKind {
     ND_BLOCKSTMT, // { <stmt>* }
     ND_CALLFUNC,  // function call
     ND_FUNCDEF,   // definition of function
+    ND_ADDR,      // & <unary>
+    ND_DEREF,     // * <unary>
+    ND_DECLARE,   // int x;
 }
 
 #[repr(C)]
@@ -46,6 +49,7 @@ pub struct Node<'a> {
 
     value: c_int,
     offset: c_int,
+    type_: &'a Type<'a>,
 }
 
 impl<'a> Node<'a> {
@@ -95,13 +99,6 @@ impl<'a> Node<'a> {
     }
 }
 
-macro_rules! debug_struct_next {
-    ($self:ident, $f:ident, $next:expr) => {};
-}
-macro_rules! debug_struct_next_none {
-    ($self:ident, $f:ident) => {};
-}
-
 use std::{
     arch::asm,
     ffi::CStr,
@@ -119,12 +116,14 @@ impl Debug for Node<'_> {
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("value", &self.value)
+                    .field("type", &self.type_)
                     .field("next", next)
                     .finish(),
                 ND_LVAR => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("offset", &self.offset)
+                    .field("type", &self.type_)
                     .field("next", next)
                     .finish(),
                 ND_RETURN => f
@@ -197,11 +196,26 @@ impl Debug for Node<'_> {
                     .field("first_arg", unsafe { &self.first_arg.as_ref() })
                     .field("then", &self.then)
                     .finish(),
+                ND_ADDR | ND_DEREF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("type", &self.type_.get())
+                    .field("next", next)
+                    .finish(),
+                ND_DECLARE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", unsafe { &(self.rhs as *const Node).as_ref() })
+                    .field("next", next)
+                    .finish(),
                 _ => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
                     .field("rhs", &self.rhs)
+                    .field("type", &self.type_.get())
                     .field("next", next)
                     .finish(),
             }
@@ -211,11 +225,13 @@ impl Debug for Node<'_> {
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("value", &self.value)
+                    .field("type", &self.type_)
                     .finish(),
                 ND_LVAR => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("offset", &self.offset)
+                    .field("type", &self.type_)
                     .finish(),
                 ND_RETURN => f
                     .debug_struct("Node")
@@ -279,11 +295,24 @@ impl Debug for Node<'_> {
                     .field("first_arg", unsafe { &self.first_arg.as_ref() })
                     .field("then", &self.then)
                     .finish(),
+                ND_ADDR | ND_DEREF => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("type", &self.type_.get())
+                    .field("lhs", &self.lhs)
+                    .finish(),
+                ND_DECLARE => f
+                    .debug_struct("Node")
+                    .field("kind", &self.kind)
+                    .field("lhs", &self.lhs)
+                    .field("rhs", unsafe { &(self.rhs as *const Node).as_ref() })
+                    .finish(),
                 _ => f
                     .debug_struct("Node")
                     .field("kind", &self.kind)
                     .field("lhs", &self.lhs)
                     .field("rhs", &self.rhs)
+                    .field("type", &self.type_.get())
                     .finish(),
             }
         }
@@ -315,6 +344,8 @@ enum TokenKind {
     TK_FOR,      // for
     TK_ELSE,     // else
     TK_NUM,      // number literal
+    TK_INT,      // int
+    TK_SIZEOF,   // sizeof
     TK_EOF,      // End of File
 }
 
@@ -378,6 +409,7 @@ pub struct LVar<'a> {
     name: &'a c_char,
     len: c_int,
     offset: c_int,
+    type_: &'a Type<'a>,
 }
 
 impl Debug for LVar<'_> {
@@ -388,11 +420,66 @@ impl Debug for LVar<'_> {
                 .field("name", &self.name)
                 .field("len", &self.len)
                 .field("offset", &self.offset)
+                .field("type", &self.type_)
                 .finish()
         } else {
             f.debug_struct("LVar is NULL").finish()
         }
     }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+enum TypeKind {
+    NONE,
+    INT,
+    PTR,
+    ARRAY,
+}
+
+#[repr(C)]
+pub struct Type<'a> {
+    ty: TypeKind,
+    ptr_to: &'a Type<'a>,
+    array_size: usize,
+}
+
+impl<'a> Debug for Type<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        assert!(!(self as *const Type<'_>).is_null());
+        match self.ty {
+            TypeKind::NONE => f.debug_struct("Type").field("ty", &self.ty).finish(),
+            TypeKind::INT => f.debug_struct("Type").field("ty", &self.ty).finish(),
+            TypeKind::PTR => f
+                .debug_struct("Type")
+                .field("ty", &self.ty)
+                .field("ptr_to", &self.ptr_to)
+                .finish(),
+            TypeKind::ARRAY => f
+                .debug_struct("Type")
+                .field("ty", &self.ty)
+                .field("ptr_to", &self.ptr_to)
+                .field("array_size", &self.array_size)
+                .finish(),
+        }
+    }
+}
+
+impl Type<'_> {
+    fn get(&self) -> Option<&Self> {
+        if (self as *const Type<'_>).is_null() {
+            return None;
+        } else {
+            return unsafe { (self as *const Type<'_>).as_ref() };
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn type_print(type_: &Type<'_>) {
+    // assert!(!type_.is_null());
+    // let type_: &Type<'_> = unsafe { type_.as_ref().unwrap() };
+    println!("{:?}", type_);
 }
 
 #[no_mangle]

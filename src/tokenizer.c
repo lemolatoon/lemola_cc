@@ -78,6 +78,19 @@ void expect(char *op) {
   token = token->next;
 }
 
+// When the next token is expected kind, then token will be replaced with
+// next token. Otherwise call `error()`
+void expect_token(TokenKind kind) {
+  if (token->kind != kind) {
+    token_printd(token);
+    fprintf(stderr, "expected '%d', but got %d\n", kind, token->kind);
+    fprintf(stderr, "HERE IS THE REST OF CODES\n");
+    fprintf(stderr, "`%s`\n", token->str);
+    error("ERR\n");
+  }
+  token = token->next;
+}
+
 // When the next token is number, then token will be replace with next token
 // and then return the number. Otherwise, call `error()`.
 int expect_number() {
@@ -99,13 +112,22 @@ bool peek_number() {
   return true;
 }
 
+// return whether current token is <type-specifier> or not.
+bool is_type_specifier() {
+  if (token->kind == TK_INT) {
+    return true;
+  }
+  return false;
+}
+
 // When the next token is ident, then token will be replaced with next token
 // and then return the number. Otherwise, call error()
 Token *consume_ident() {
   token_printd(token);
   assertd(token->kind == TK_IDENT);
   if (token->kind != TK_IDENT) {
-    error_at("expect ident but got : %d (token->kind)\n", token->kind);
+    error_at(token->str, "expect ident but got : %d (token->kind)\n",
+             token->kind);
   }
   Token *ident = token;
   token = ident->next;
@@ -138,7 +160,8 @@ static bool starts_with(char *p, char *q) {
 static bool is_punctuator(char *p) {
   if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' ||
       *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';' ||
-      *p == '{' || *p == '}' || *p == '%' || *p == ',') {
+      *p == '{' || *p == '}' || *p == '%' || *p == ',' || *p == '*' ||
+      *p == '&' || *p == '[' || *p == ']') {
     return true;
   } else {
     return false;
@@ -181,6 +204,14 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (strncmp(p, "//", 2) == 0) {
+      p += 2;
+      while (*p != '\n') {
+        p++;
+      }
+      continue;
+    }
+
     // Numerical Literal
     if (isdigit(*p)) {
       char *digit_start = p;
@@ -203,7 +234,7 @@ Token *tokenize(char *p) {
 
     // Identifier or Reserved words
     // possible characters that can be beside indent
-    char *white_ptr = strpbrk(p, " \n\t=;,()}");
+    char *white_ptr = strpbrk(p, " \n\t=;,()}[]");
     int len = white_ptr - p;
     if (len >= 1) {
       if (len == 6 && !strncmp(p, "return", 6)) { // return
@@ -216,6 +247,10 @@ Token *tokenize(char *p) {
         current_token = new_token(TK_FOR, current_token, p, white_ptr);
       } else if (len == 4 && !strncmp(p, "else", 4)) {
         current_token = new_token(TK_ELSE, current_token, p, white_ptr);
+      } else if (len == 3 && !strncmp(p, "int", 3)) {
+        current_token = new_token(TK_INT, current_token, p, white_ptr);
+      } else if (len == 6 && !strncmp(p, "sizeof", 6)) {
+        current_token = new_token(TK_SIZEOF, current_token, p, white_ptr);
       } else {
         current_token = new_token(TK_IDENT, current_token, p, white_ptr);
       }

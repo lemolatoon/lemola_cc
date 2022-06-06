@@ -33,14 +33,21 @@ $(OBJS): src/lemola_cc.h
 src.s: lemola_cc src.c
 	./lemola_cc src.c
 
+a.out: src.s lemola_cc tmp.c
+	$(CC) src.s $(ASFLAG) 
+
+src2.s: lemola_cc src2.c
+	./lemola_cc src2.c -o src2.s
+
+a2.out: src2.s lemola_cc 
+	$(CC) src2.s -o a2.out $(ASFLAG) 
+
 $(RUSTLIBPATH): for_test/src/lib.rs for_test/Cargo.toml for_test/.cargo/config.toml
 	cd for_test && \
 	cargo build && \
 	cd .. && \
 	cp $(RUSTLIB) $(MKFILE_PATH)dynlib/ 
 
-a.out: src.s lemola_cc tmp.c
-	$(CC) src.s $(ASFLAG) 
 
 
 .PHONY: clean
@@ -56,8 +63,8 @@ test_old: lemola_cc
 test: lemola_cc test/test.c test/test_utils.c
 	cd test && \
 		../lemola_cc test.c && \
-		$(CC) -c test_utils.c && \
-		$(CC) src.s test_utils.o -o tmp && \
+		$(CC)  -c test_utils.c -g3 && \
+		$(CC)  src.s test_utils.o -o tmp -g3 && \
 		./tmp
 
 test3: lemola_cc test/test3.c test/test.c test/test_utils.c

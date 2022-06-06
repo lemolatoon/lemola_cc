@@ -3,10 +3,13 @@ src.c
 src2.c
 link.c
 src.s
+src2.s
 a.out
 lemola_cc
 tmp.c
 tmp.s
+log
+tmp
 
 # under test/
 test/tmp
@@ -20,6 +23,7 @@ src/parser.o
 src/tokenizer.o
 
 for_test/target
+for_test/tmp.rs
 .vscode
 
 # Prerequisites
