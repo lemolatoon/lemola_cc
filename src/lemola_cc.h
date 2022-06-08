@@ -11,16 +11,25 @@
 #define printk(...) printf(__VA_ARGS__)
 #define assertd(expr) assert(expr)
 #define fprintfd(fp, str) fprintf(fp, str)
+#define dynprintd(fp, name, len) dynprint(fp, name, len)
+#define println_depd(tree_depth, ...)                                          \
+  println_with_depth(tree_depth, __VA_ARGS__)
 #else
 #define printk(...)                                                            \
   do {                                                                         \
-  } while (0);
+  } while (0)
 #define assertd(...)                                                           \
   do {                                                                         \
-  } while (0);
+  } while (0)
 #define fprintfd(...)                                                          \
   do {                                                                         \
-  } while (0);
+  } while (0)
+#define dynprintd(fp, name, len)                                               \
+  do {                                                                         \
+  } while (0)
+#define println_depd(...)                                                      \
+  do {                                                                         \
+  } while (0)
 #endif
 
 // --------------parser----------------
@@ -219,6 +228,7 @@ int size_of(Type *type);
 void error(char *fmt, ...);
 Type *clone_type(Type *type);
 // ---------------utils----------------
+void println_with_depth(int tree_depth, char *fmt, ...);
 #ifdef RUSTD
 void ast_print(Node *node);
 void hello();
@@ -231,7 +241,6 @@ void type_print(Type *type);
 #define token_printd(token) token_print(token)
 #define lvar_printd(lvar) lvar_print(lvar)
 #define type_printd(type) type_print(type)
-#define dynprintd(fp, name, len) dynprint(fp, name, len)
 #else
 #define ast_printd(node)                                                       \
   do {                                                                         \
@@ -246,9 +255,6 @@ void type_print(Type *type);
   do {                                                                         \
   } while (0)
 #define type_printd(token)                                                     \
-  do {                                                                         \
-  } while (0)
-#define dynprintd(fp, name, len)                                               \
   do {                                                                         \
   } while (0)
 #endif

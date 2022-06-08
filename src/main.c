@@ -42,13 +42,15 @@ int main(int argc, char **argv) {
   // output starting part of assembly
   fprintf(target_pointer, ".intel_syntax noprefix\n");
 
-  printk("===========code_gen================\n");
-
   assertd(program != NULL);
   assertd(program->node != NULL);
+  printk("=============analyze==================\n");
+  down_ast(program);
+  printk("=============analyze end==============\n");
+
+  printk("===========code_gen================\n");
   Program *watching = program;
-  for (int i = 0; watching != NULL && watching->node != NULL; i++) {
-    down_ast(watching->node);
+  while (watching->node != NULL) {
     ast_printd(watching->node);
     generate_head(target_pointer, watching->node);
 

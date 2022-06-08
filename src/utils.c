@@ -31,3 +31,14 @@ Type *clone_type(Type *type) {
   }
   return res;
 }
+
+void println_with_depth(int tree_depth, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  for (int i = 0; i < tree_depth; i++) {
+    printf("  ");
+  }
+  vprintf(fmt, ap);
+  printf("\n");
+  va_end(ap);
+}

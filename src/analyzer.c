@@ -5,22 +5,27 @@
 // if node->kind != kind, call error
 void expect_node(Node *node, NodeKind kind) { assert(node->kind == kind); }
 
-void down_ast(Node *node);
-static Node *down_call_func(Node *node);
-static void *down_stmt(Node *node);
+void down_ast(Program *program);
+static Node *down_call_func(Node *node, int tree_depth);
+static void *down_stmt(Node *node, int tree_depth);
 
-void down_ast(Node *node) {
-  while (node != NULL) {
-    node = down_call_func(node);
+void down_ast(Program *program) {
+  int tree_depth = 0;
+  Program *watching = program;
+  while (watching->node != NULL) {
+    Node *node = watching->node;
+    assertd(node != NULL);
+    node = down_call_func(node, tree_depth);
+    assert(node == NULL);
+    watching = watching->next;
   }
-  assert(node == NULL);
 }
 
-Node *down_call_func(Node *node) {
+Node *down_call_func(Node *node, int tree_depth) {
   char *func_name = malloc(node->len * sizeof(char) + 1);
   strncpy(func_name, node->name, node->len);
   func_name[node->len] = '\0'; // null terminated
-  printk("func name: %s\n", func_name);
+  println_depd(tree_depth, "func name: %s", func_name);
   Node *arg;
   if (node->arg_count > 0) {
     assert(node->first_arg != NULL);
@@ -40,37 +45,37 @@ Node *down_call_func(Node *node) {
     return node->next;
   }
   Node *stmt = node->then;
-  down_stmt(stmt);
+  down_stmt(stmt, tree_depth + 1);
   return node->next;
 }
 
-void *down_stmt(Node *stmt) {
+void *down_stmt(Node *stmt, int tree_depth) {
   switch (stmt->kind) {
   case ND_RETURN:
-    printk("return\n");
+    println_depd(tree_depth, "return");
     break;
   case ND_IF:
-    printk("if\n");
+    println_depd(tree_depth, "if");
     break;
   case ND_WHILE:
-    printk("while\n");
+    println_depd(tree_depth, "while");
     break;
   case ND_FOR:
-    printk("for\n");
+    println_depd(tree_depth, "for");
     break;
   case ND_BLOCKSTMT:
-    printk("block stmt\n");
+    println_depd(tree_depth, "block stmt");
     Node *watching = stmt->next;
     while (watching != NULL) {
-      down_stmt(watching);
+      down_stmt(watching, tree_depth + 1);
       watching = watching->next;
     }
     break;
   case ND_DECLARE:
-    printk("declaration\n");
+    println_depd(tree_depth, "declaration");
     break;
   default: // expr
-    printk("expr\n");
+    println_depd(tree_depth, "expr");
     break;
   }
 }

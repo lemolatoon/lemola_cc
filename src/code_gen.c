@@ -146,7 +146,6 @@ void generate_stmt(FILE *fp, Node *node) {
     pop(fp, "rax");
     // revert rsp to mem which is storing the previous rbp
     fprintf(fp, " mov rsp, rbp\n");
-    printk("=============parse_func=========");
     // revert rbp
     fprintf(fp, " pop rbp\n");
     fprintf(fp, " ret\n");

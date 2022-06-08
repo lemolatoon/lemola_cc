@@ -184,12 +184,7 @@ Node *get_lvar(Token *tok) {
   return node;
 }
 
-// Ensure to access after calling `parse_program()`.
-// The last element will be set NULL.
-Node *code[1000];
-
 Program *parse_program() {
-  int i = 0;
   Program *head = calloc(1, sizeof(Program));
   head->next = calloc(1, sizeof(Program));
   Program *watching = head->next;
@@ -198,7 +193,6 @@ Program *parse_program() {
     watching->next = calloc(1, sizeof(Program));
     watching = watching->next;
     locals = NULL;
-    i++;
   }
   assertd(head->next != NULL);
   return head->next;
