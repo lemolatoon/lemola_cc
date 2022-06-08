@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "analyzer.h"
 #include "lemola_cc.h"
 
 int main(int argc, char **argv) {
@@ -45,6 +46,7 @@ int main(int argc, char **argv) {
 
   assertd(code[0] != NULL);
   for (int i = 0; code[i] != NULL; i++) {
+    down_ast(code[i]);
     ast_printd(code[i]);
     generate_head(target_pointer, code[i]);
 

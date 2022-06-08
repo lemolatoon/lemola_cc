@@ -149,6 +149,8 @@ Node *new_node_local_variable(Type *type, Token *tok) {
   } else {
     lvar->offset = locals->offset + size_of(type);
   }
+  node->name = lvar->name;
+  node->len = lvar->len;
   node->offset = lvar->offset;
   node->type = lvar->type;
   // set lvar head of locals

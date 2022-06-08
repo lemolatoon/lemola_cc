@@ -22,6 +22,7 @@ int main() {
   assert(14, 0, test14());
   assert(15, 0, test15());
   assert(16, 0, test16());
+  test17(); // do nothing function test
 
   print_ok();
   return 0;
@@ -247,6 +248,8 @@ int test16() {
   assert(16, 5, *(a + 1));
   return 0;
 }
+
+int test17() {} // do nothing
 
 int add(int x, int y) { return x + y; }
 
