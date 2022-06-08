@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
   printk("==========tokenize end!=========\n");
 
   printk("=============parse==============\n");
-  parse_program();
+  Program *program = parse_program();
   printk("===========parse end=============\n");
 
   // output starting part of assembly
@@ -44,14 +44,15 @@ int main(int argc, char **argv) {
 
   printk("===========code_gen================\n");
 
-  assertd(code[0] != NULL);
-  for (int i = 0; code[i] != NULL; i++) {
-    down_ast(code[i]);
-    ast_printd(code[i]);
-    generate_head(target_pointer, code[i]);
+  assertd(program != NULL);
+  assertd(program->node != NULL);
+  Program *watching = program;
+  for (int i = 0; watching != NULL && watching->node != NULL; i++) {
+    down_ast(watching->node);
+    ast_printd(watching->node);
+    generate_head(target_pointer, watching->node);
 
-    // // pop result of evaluation of the last expression
-    // fprintf(target_pointer, " pop rax\n");
+    watching = watching->next;
   }
   // generate assembly while getting down AST(Abstract Syntax Tree)
   printk("===========code_gen end=============\n");

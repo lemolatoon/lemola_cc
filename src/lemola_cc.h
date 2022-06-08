@@ -119,11 +119,15 @@ struct Type {
   size_t array_size; // when(ty==ARRAY), size of array e.g) a[2] -> 2
 };
 
-// Ensure to access after calling `parse_program()`.
-// The last element will be set NULL.
-extern Node *code[1000];
+// LinkedList of top level node of ast
+struct Program {
+  Node *node;
+  struct Program *next;
+};
 
-void parse_program();
+typedef struct Program Program;
+
+Program *parse_program();
 
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);

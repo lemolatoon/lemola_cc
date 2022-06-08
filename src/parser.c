@@ -5,7 +5,7 @@
 
 // --------------parser----------------
 
-void parse_program();
+Program *parse_program();
 static Node *parse_func();
 static Node *parse_stmt();
 
@@ -188,14 +188,20 @@ Node *get_lvar(Token *tok) {
 // The last element will be set NULL.
 Node *code[1000];
 
-void parse_program() {
+Program *parse_program() {
   int i = 0;
+  Program *head = calloc(1, sizeof(Program));
+  head->next = calloc(1, sizeof(Program));
+  Program *watching = head->next;
   while (!at_eof()) {
-    code[i] = parse_func();
+    watching->node = parse_func();
+    watching->next = calloc(1, sizeof(Program));
+    watching = watching->next;
     locals = NULL;
     i++;
   }
-  code[i] = NULL;
+  assertd(head->next != NULL);
+  return head->next;
 }
 
 static Node *parse_func() {
@@ -760,7 +766,6 @@ Node *parse_postfix() {
     }
     expect("]");
     ast_printd(node);
-    node;
     node = new_node(ND_DEREF, new_node(ND_ADD, node, expr), NULL);
     node->lhs->type = derefed;
     node->type = clone_type(derefed->ptr_to);
