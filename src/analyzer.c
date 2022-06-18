@@ -110,7 +110,6 @@ static void down_expr_head(Node *expr, int tree_depth) {
 }
 
 static void down_expr(Node *expr, int tree_depth) {
-  print_depd(0, "{ ");
 
   assertd(expr->kind != ND_BLOCKSTMT);
   assertd(expr->kind != ND_IF);
@@ -221,8 +220,6 @@ static void down_expr(Node *expr, int tree_depth) {
     error("Unexpected NodeKind: %d", expr->kind);
     break;
   }
-
-  print_depd(0, "} ");
 }
 
 static void down_declaration(Declaration *declaration, int tree_depth) {
