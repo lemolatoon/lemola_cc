@@ -9,8 +9,11 @@
 void expect_node(Node *node, NodeKind kind) { assert(node->kind == kind); }
 
 void down_ast(Program *program);
-static void *down_call_func(Node *node, int tree_depth);
-static void *down_stmt(Node *node, int tree_depth);
+static void down_call_func(Node *node, int tree_depth);
+static void down_stmt(Node *node, int tree_depth);
+
+static void down_expr_head(Node *expr, int tree_depth);
+static void down_expr(Node *expr, int tree_depth);
 
 static void down_declaration(Declaration *d_spec, int tree_depth);
 static void down_declaration_specifiers(DeclarationSpecifier *d_spec,
@@ -33,7 +36,7 @@ void down_ast(Program *program) {
   }
 }
 
-void *down_call_func(Node *node, int tree_depth) {
+void down_call_func(Node *node, int tree_depth) {
   char *func_name = malloc(node->len * sizeof(char) + 1);
   strncpy(func_name, node->name, node->len);
   func_name[node->len] = '\0'; // null terminated
@@ -54,19 +57,27 @@ void *down_call_func(Node *node, int tree_depth) {
 
   // func definition body
   if (node->then == NULL) {
-    return node->next;
+    return;
   }
   Node *stmt = node->then;
   down_stmt(stmt, tree_depth + 1);
 }
 
-void *down_stmt(Node *stmt, int tree_depth) {
+void down_stmt(Node *stmt, int tree_depth) {
   switch (stmt->kind) {
   case ND_RETURN:
     println_depd(tree_depth, "return");
     break;
   case ND_IF:
     println_depd(tree_depth, "if");
+    println_depd(tree_depth + 1, "condition");
+    down_expr_head(stmt->condition, tree_depth + 2);
+    println_depd(tree_depth + 1, "then");
+    down_stmt(stmt->then, tree_depth + 2);
+    if (stmt->els != NULL) {
+      println_depd(tree_depth + 1, "else");
+      down_stmt(stmt->els, tree_depth + 2);
+    }
     break;
   case ND_WHILE:
     println_depd(tree_depth, "while");
@@ -83,16 +94,138 @@ void *down_stmt(Node *stmt, int tree_depth) {
     }
     break;
   case ND_DECLARE:
+    println_depd(tree_depth, "declaration");
     down_declaration(stmt->declaration, tree_depth + 1);
     break;
   default: // expr
-    println_depd(tree_depth, "expr");
+    down_expr_head(stmt, tree_depth);
     break;
   }
 }
 
+static void down_expr_head(Node *expr, int tree_depth) {
+  print_depd(tree_depth, "expr { ");
+  down_expr(expr, tree_depth);
+  println_depd(0, "} ");
+}
+
+static void down_expr(Node *expr, int tree_depth) {
+  print_depd(0, "{ ");
+
+  assertd(expr->kind != ND_BLOCKSTMT);
+  assertd(expr->kind != ND_IF);
+  assertd(expr->kind != ND_WHILE);
+  assertd(expr->kind != ND_FOR);
+
+  switch (expr->kind) {
+  case ND_NUM: {
+    print_depd(0, "%d ", expr->value);
+    // same as `fprintf(fp, " push %d\n", node->value);`
+    break;
+  }
+  case ND_LVAR:
+    print_depd(0, "offset :%d ", expr->offset);
+    break;
+  case ND_ASSIGN:
+    print_depd(0, "{ ");
+    assertd(expr->lhs != NULL);
+    assertd(expr->rhs != NULL);
+    down_expr(expr->lhs, 0);
+    print_depd(0, "= ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+
+    break;
+  case ND_CALLFUNC:
+    print_depd(0, "{ ");
+    print_depd(0, "%s ()", strnclone(expr->name, expr->len));
+    print_depd(0, "} ");
+    break;
+  case ND_ADDR:
+    print_depd(0, "& ");
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_DEREF:
+    print_depd(0, "* ");
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "} ");
+    break;
+  // binary expr
+  case ND_EQ:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "== ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_NEQ:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "!= ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_SMALLER:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "< ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_SMALLEREQ:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "<= ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_ADD:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "+ ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_SUB:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "- ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_MUL:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "* ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_DIV:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "/ ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  case ND_REST:
+    print_depd(0, "{ ");
+    down_expr(expr->lhs, 0);
+    print_depd(0, "% ");
+    down_expr(expr->rhs, 0);
+    print_depd(0, "} ");
+    break;
+  default:
+    error("Unexpected NodeKind: %d", expr->kind);
+    break;
+  }
+
+  print_depd(0, "} ");
+}
+
 static void down_declaration(Declaration *declaration, int tree_depth) {
-  println_depd(tree_depth, "declaration\t");
   Type *type = declaration->init_declarator->declarator->ptr
                    ->ptr_to; // type->ptr_to->ptr_to->...->ty == NULL
   int num_star = declaration->init_declarator->declarator->ptr->num_star;
@@ -127,7 +260,7 @@ static void down_declaration(Declaration *declaration, int tree_depth) {
   assertd(var_token->kind == TK_IDENT);
   // Node *var = new_node_local_variable(type, var_token); // create local
   // variable Node *node = new_node(ND_DECLARE, var, NULL);
-  println_with_depth(tree_depth, "Variable %s, %s declaration",
+  println_with_depth(tree_depth, "Variable %s, %s",
                      strnclone(var_token->str, var_token->len),
                      type2string(type));
 }

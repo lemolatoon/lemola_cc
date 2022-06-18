@@ -29,7 +29,6 @@ int size_of(Type *type) {
 void generate_head(FILE *fp, Node *node) {
   assertd(node->kind == ND_FUNCDEF);
   generate_funcdef(fp, node);
-  printk("depth: %d\n", depth);
   ast_printd(node);
   if (depth != 0) {
     fprintf(stderr, "depth != 0 after code generate func: ");

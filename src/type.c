@@ -21,7 +21,6 @@ char *typekind2sting(TypeKind kind) {
 }
 
 char *type2string(Type *type) {
-  char *buf;
   int len;
   switch (type->ty) {
   case NONE:
@@ -30,19 +29,21 @@ char *type2string(Type *type) {
   case INT:
     return "INT";
     break;
-  case PTR:
-    buf = malloc(sizeof(char) * 1000);
-    len = snprintf(buf, sizeof(buf) / sizeof(buf[0]), "PTR of {%s}",
+  case PTR: {
+    const int BUF_SIZE = 1000;
+    char *buf = malloc(sizeof(char) * 1000);
+    int len = snprintf(buf, BUF_SIZE, "PTR of {%s}", type2string(type->ptr_to));
+    return buf;
+    break;
+  }
+  case ARRAY: {
+    const int BUF_SIZE = 1000;
+    char *buf = malloc(sizeof(char) * BUF_SIZE);
+    len = snprintf(buf, BUF_SIZE, "SIZE: %zu, ARRAY of {%s}", type->array_size,
                    type2string(type->ptr_to));
     return buf;
     break;
-  case ARRAY:
-    buf = malloc(sizeof(char) * 1000);
-    len =
-        snprintf(buf, sizeof(buf) / sizeof(buf[0]), "SIZE: %lld, ARRAY of {%s}",
-                 type->array_size, type2string(type->ptr_to));
-    return buf;
-    break;
+  }
   default:
     fprintf(stderr, "Unexpected typekind");
     exit(1);

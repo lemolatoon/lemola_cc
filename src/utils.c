@@ -44,6 +44,16 @@ void println_with_depth(int tree_depth, char *fmt, ...) {
   va_end(ap);
 }
 
+void print_with_depth(int tree_depth, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  for (int i = 0; i < tree_depth; i++) {
+    printf("  ");
+  }
+  vprintf(fmt, ap);
+  va_end(ap);
+}
+
 char *strnclone(char *long_str, int len) {
   char *buf = malloc(sizeof(char) * len + 1);
   strncpy(buf, long_str, len);

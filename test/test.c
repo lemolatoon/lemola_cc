@@ -23,6 +23,7 @@ int main() {
   assert(15, 0, test15());
   assert(16, 0, test16());
   test17(); // do nothing function test
+  assert(18, 0, test18());
 
   print_ok();
   return 0;
@@ -250,6 +251,14 @@ int test16() {
 }
 
 int test17() {} // do nothing
+
+int test18() {
+  int x;
+  x; // just variable
+  1; // just literal
+
+  return 0;
+}
 
 int add(int x, int y) { return x + y; }
 

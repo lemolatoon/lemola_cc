@@ -81,7 +81,6 @@ bool peek_declaration() { return is_type_specifier(); }
 
 // Create Specified kind, lhs, rhs node. Returns the created node
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
-  printk("NEW_NODE\n");
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
   if (lhs == NULL || rhs == NULL) {
@@ -89,7 +88,6 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   }
   node->lhs = lhs;
   node->rhs = rhs;
-  printk("kind: %d, value: %d\n", node->kind, node->value);
   return node;
   ast_printd(node);
 }
@@ -853,7 +851,6 @@ void look_under(Node *node, int depth) {
   for (int i = 0; i < depth; i++) {
     putchar('\t');
   }
-  printk("kind: %d, value: %d\n", node->kind, node->value);
   if (node->kind != ND_NUM) {
     printk("Right\t");
     look_under(node->rhs, depth + 1);

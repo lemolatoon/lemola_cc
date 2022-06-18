@@ -14,6 +14,7 @@
 #define assertd(expr) assert(expr)
 #define fprintfd(fp, str) fprintf(fp, str)
 #define dynprintd(fp, name, len) dynprint(fp, name, len)
+#define print_depd(tree_depth, ...) print_with_depth(tree_depth, __VA_ARGS__)
 #define println_depd(tree_depth, ...)                                          \
   println_with_depth(tree_depth, __VA_ARGS__)
 #else
@@ -30,6 +31,9 @@
   do {                                                                         \
   } while (0)
 #define println_depd(...)                                                      \
+  do {                                                                         \
+  } while (0)
+#define print_depd(...)                                                        \
   do {                                                                         \
   } while (0)
 #endif
@@ -138,6 +142,7 @@ Node *new_node_local_variable();
 // --------------parser----------------
 
 void parser_test();
+int const_eval(Node *expr);
 
 // -------------Tokenizer--------------
 
@@ -218,6 +223,7 @@ void error(char *fmt, ...);
 Type *clone_type(Type *type);
 char *strnclone(char *long_str, int len);
 // ---------------utils----------------
+void print_with_depth(int tree_depth, char *fmt, ...);
 void println_with_depth(int tree_depth, char *fmt, ...);
 #ifdef RUSTD
 void ast_print(Node *node);
