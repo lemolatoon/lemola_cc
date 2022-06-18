@@ -1,21 +1,25 @@
-#include "lemola_cc.h"
-
 #pragma once
+
+#include "lemola_cc.h"
+#include "type.h"
+
+// struct Node;
+// struct Type;
 
 typedef enum {
   DD_IDENT,
   DD_ARRAY,
 } DirectDeclaratorKind;
 
-typedef struct {
+typedef struct DirectDeclarator {
   DirectDeclaratorKind kind;
-  Token *ident; // identifier of declared var
-  Node *expr;   // const expr of array size (assert(kind == DD_ARRAY))
+  struct Token *ident; // identifier of declared var
+  struct Node *expr;   // const expr of array size (assert(kind == DD_ARRAY))
 } DirectDeclarator;
 
 typedef struct {
-  int num_star; // number of *
-  Type *ptr_to; // ptr_to
+  int num_star;        // number of *
+  struct Type *ptr_to; // ptr_to
 } Pointer;
 
 typedef struct {
@@ -35,7 +39,7 @@ typedef struct {
   TypeSpecifier *type_specifier;
 } DeclarationSpecifier;
 
-typedef struct {
+typedef struct Declaration {
   DeclarationSpecifier *declaration_specifier; // type before "*"
   InitDeclarator *init_declarator;
 } Declaration;

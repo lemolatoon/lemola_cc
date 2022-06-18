@@ -1,8 +1,10 @@
+#pragma once
+
+#include "declaration.h"
+#include "type.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-#pragma once
 
 // #define Debug
 //#define RUSTD
@@ -60,6 +62,7 @@ typedef enum {
 
 typedef struct Node Node;
 typedef struct Type Type;
+struct Declaration;
 
 struct Node {
   NodeKind kind; // type of Node
@@ -100,6 +103,8 @@ struct Node {
   // when(kind == ND_LVAR): type of lvar
   // when(kind == ND_NUM): type of literal
   Type *type;
+  // when(kind == ND_DECLARE): struct of Declaration
+  struct Declaration *declaration;
 };
 
 typedef struct LVar LVar;
@@ -110,22 +115,6 @@ struct LVar {
   int len;    // length of variable name
   int offset; // offset from rbp
   Type *type; // type of lvar
-};
-
-typedef enum {
-  NONE,
-  INT,
-  PTR,
-  ARRAY,
-} TypeKind;
-
-struct Type {
-  TypeKind ty; // pointer or int
-
-  // when(ty==PTR), type is the pointer to `ptr_to`
-  // when(ty==ARRAY), ptr_to is type of array
-  struct Type *ptr_to;
-  size_t array_size; // when(ty==ARRAY), size of array e.g) a[2] -> 2
 };
 
 // LinkedList of top level node of ast
@@ -227,6 +216,7 @@ int size_of(Type *type);
 // ---------------utils----------------
 void error(char *fmt, ...);
 Type *clone_type(Type *type);
+char *strnclone(char *long_str, int len);
 // ---------------utils----------------
 void println_with_depth(int tree_depth, char *fmt, ...);
 #ifdef RUSTD

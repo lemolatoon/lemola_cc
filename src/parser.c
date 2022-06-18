@@ -305,9 +305,11 @@ Node *parse_stmt() {
     return node;
   } else if (peek_declaration()) {
     Declaration *declaration = parse_declaration();
+    // node = new_node(ND_DECLARE, NULL, NULL);
     Type *type = declaration->init_declarator->declarator->ptr
                      ->ptr_to; // type->ptr_to->ptr_to->...->ty == NULL
     int num_star = declaration->init_declarator->declarator->ptr->num_star;
+    printf("%s", type2string(type));
     if (type->ty != NONE) { // if ptr type
       Type *ground = type->ptr_to;
       for (int i = 0; i < num_star - 1; i++) {
@@ -339,7 +341,7 @@ Node *parse_stmt() {
     Node *var =
         new_node_local_variable(type, var_token); // create local variable
     node = new_node(ND_DECLARE, var, NULL);
-    expect(";");
+    node->declaration = declaration;
   } else {
     // <expr> ";"
     node = parse_expr();
@@ -354,6 +356,7 @@ static Declaration *parse_declaration() {
   Declaration *declaration = calloc(1, sizeof(Declaration));
   declaration->declaration_specifier = parse_declaration_specifiers();
   declaration->init_declarator = parse_init_declarator();
+  expect(";");
   return declaration;
 };
 

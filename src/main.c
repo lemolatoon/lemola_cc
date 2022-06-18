@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   printk("===========code_gen================\n");
   Program *watching = program;
   while (watching->node != NULL) {
-    ast_printd(watching->node);
+    // ast_printd(watching->node);
     generate_head(target_pointer, watching->node);
 
     watching = watching->next;

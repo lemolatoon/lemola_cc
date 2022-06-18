@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void error(char *fmt, ...) {
   va_list ap;
@@ -41,4 +42,11 @@ void println_with_depth(int tree_depth, char *fmt, ...) {
   vprintf(fmt, ap);
   printf("\n");
   va_end(ap);
+}
+
+char *strnclone(char *long_str, int len) {
+  char *buf = malloc(sizeof(char) * len + 1);
+  strncpy(buf, long_str, len);
+  buf[len] = '\0';
+  return buf;
 }

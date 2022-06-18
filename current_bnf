@@ -6,9 +6,9 @@
                                     | "while" "(" <expr> ")" <stmt>
                                     | "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
                                     | "return" <expr> ";"
-                                    | <declaration> ";"
+                                    | <declaration>
 
-<declaration>                   := <declaration-specifiers> <init-declarator>*
+<declaration>                   := <declaration-specifiers> <init-declarator>* ";"
 <declaration-specifiers>        := <type-specifiers>
 <type-specifiers>               := "int"
 
